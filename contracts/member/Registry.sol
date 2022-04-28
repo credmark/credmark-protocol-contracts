@@ -7,12 +7,16 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 abstract contract Registry is AccessControl {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    bytes32 public constant REGISTRY_MANAGER_ROLE = keccak256("REGISTRY_MANAGER_ROLE");
+    bytes32 public constant REGISTRY_MANAGER_ROLE =
+        keccak256("REGISTRY_MANAGER_ROLE");
 
     EnumerableSet.AddressSet internal registeredAddresses;
 
     modifier registered(address addr) {
-        require(registeredAddresses.contains(addr), "Contract is not Registered");
+        require(
+            registeredAddresses.contains(addr),
+            "Contract is not Registered"
+        );
         _;
     }
 
@@ -29,11 +33,11 @@ abstract contract Registry is AccessControl {
         registeredAddresses.remove(addr);
     }
 
-    function isRegistered(address addr) external view returns(bool) {
+    function isRegistered(address addr) external view returns (bool) {
         return registeredAddresses.contains(addr);
     }
 
-    function addressAt(uint i) external view returns (address) {
+    function addressAt(uint256 i) external view returns (address) {
         return registeredAddresses.at(i);
     }
 }

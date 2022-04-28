@@ -10,17 +10,17 @@ contract CmkConversion is AccessControl {
     using SafeERC20 for IERC20;
     ModlMint minter;
     IERC20 cmk = IERC20(0x68CFb82Eacb9f198d508B514d898a403c449533E);
-    uint conversionRatio = 250000000000000000;
+    uint256 conversionRatio = 250000000000000000;
     bool isStarted;
 
-    mapping(address => uint) deposited;
+    mapping(address => uint256) deposited;
 
     modifier started() {
         require(isStarted, "not started");
         _;
     }
 
-    constructor (ModlMint minter_) {
+    constructor(ModlMint minter_) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         minter = minter_;
     }
@@ -29,8 +29,5 @@ contract CmkConversion is AccessControl {
         isStarted = true;
     }
 
-    function deposit(uint amount) external {
-        
-    } 
-
+    function deposit(uint256 amount) external {}
 }

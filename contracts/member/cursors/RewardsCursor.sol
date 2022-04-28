@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-contract RewardsCursor  {
-
+contract RewardsCursor {
     /*
         For this Rewards Pool Cursor:
 
@@ -14,48 +13,54 @@ contract RewardsCursor  {
         localValue is the last saved RI_sh_0_n 
      */
 
-    uint baseRate;
-    uint totalShares;
-    uint rewardsIssuedPerShare;
-    uint timestamp;
+    uint256 baseRate;
+    uint256 totalShares;
+    uint256 rewardsIssuedPerShare;
+    uint256 timestamp;
 
     struct PoolCursor {
-        uint rewardsIssued;
-        uint rewardsIssuedPerShare;
-        uint shares;
-        uint timestamp;
+        uint256 rewardsIssued;
+        uint256 rewardsIssuedPerShare;
+        uint256 shares;
+        uint256 timestamp;
     }
 
     mapping(address => PoolCursor) internal poolCursor;
 
-    constructor(uint _baseRate) {
+    constructor(uint256 _baseRate) {
         timestamp = block.timestamp;
         baseRate = _baseRate;
     }
 
-    function updateShares(address pool, uint newShares) external {
-        uint newRewardsIssuedPerShare = getRIpS();
-        uint newRewardsIssued = getValue(pool);
+    function updateShares(address pool, uint256 newShares) external {
+        uint256 newRewardsIssuedPerShare = getRIpS();
+        uint256 newRewardsIssued = getValue(pool);
 
         totalShares += newShares - poolCursor[pool].shares;
         timestamp = block.timestamp;
         rewardsIssuedPerShare = newRewardsIssuedPerShare;
-        poolCursor[pool] = PoolCursor(newRewardsIssued, newRewardsIssuedPerShare, newShares, block.timestamp);
+        poolCursor[pool] = PoolCursor(
+            newRewardsIssued,
+            newRewardsIssuedPerShare,
+            newShares,
+            block.timestamp
+        );
     }
 
-    function updateBaseRate(uint newRate) external {
+    function updateBaseRate(uint256 newRate) external {
         baseRate = newRate;
     }
 
-    function getValue(address pool) public view returns (uint value) {
-        uint timeDelta = block.timestamp - poolCursor[pool].timestamp;
-        value = poolCursor[pool].rewardsIssued + ((rewardsIssuedPerShare - poolCursor[pool].rewardsIssuedPerShare) * poolCursor[pool].shares);
+    function getValue(address pool) public view returns (uint256 value) {
+        uint256 timeDelta = block.timestamp - poolCursor[pool].timestamp;
+        value =
+            poolCursor[pool].rewardsIssued +
+            ((rewardsIssuedPerShare - poolCursor[pool].rewardsIssuedPerShare) *
+                poolCursor[pool].shares);
     }
 
-    function getRIpS() internal view returns (uint value) {
-        uint timeDelta = block.timestamp - timestamp;
-        value = rewardsIssuedPerShare + (timeDelta * baseRate / totalShares);
+    function getRIpS() internal view returns (uint256 value) {
+        uint256 timeDelta = block.timestamp - timestamp;
+        value = rewardsIssuedPerShare + ((timeDelta * baseRate) / totalShares);
     }
 }
-
-

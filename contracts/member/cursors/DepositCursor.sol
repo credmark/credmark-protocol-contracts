@@ -4,17 +4,16 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DepositCursor is Ownable {
-    
-    uint internal baseRate = 10**36;
-    uint internal timestamp;
-    uint internal sharesPerDeposit;
-    uint public totalDeposits;
+    uint256 internal baseRate = 10**36;
+    uint256 internal timestamp;
+    uint256 internal sharesPerDeposit;
+    uint256 public totalDeposits;
 
     struct DepositTimeCursor {
-        uint accumulatedDeposit;
-        uint sharesPerDeposit;
-        uint deposit;
-        uint timestamp;
+        uint256 accumulatedDeposit;
+        uint256 sharesPerDeposit;
+        uint256 deposit;
+        uint256 timestamp;
     }
 
     mapping(address => DepositTimeCursor) depositorCursor;
@@ -23,31 +22,43 @@ contract DepositCursor is Ownable {
         timestamp = block.timestamp;
     }
 
-    function updateDeposit(address depositor, uint newDeposit) external {
-        uint newSharesPerDeposit = getValue();
-        uint newAccumulatedDeposit = getValue(depositor);
+    function updateDeposit(address depositor, uint256 newDeposit) external {
+        uint256 newSharesPerDeposit = getValue();
+        uint256 newAccumulatedDeposit = getValue(depositor);
 
         totalDeposits += newDeposit - depositorCursor[depositor].deposit;
         timestamp = block.timestamp;
         sharesPerDeposit = newSharesPerDeposit;
-        depositorCursor[depositor] = DepositTimeCursor(newAccumulatedDeposit, newSharesPerDeposit, newDeposit, block.timestamp);
+        depositorCursor[depositor] = DepositTimeCursor(
+            newAccumulatedDeposit,
+            newSharesPerDeposit,
+            newDeposit,
+            block.timestamp
+        );
     }
 
-    function getValue() public view returns (uint) {
-        uint timeDelta = block.timestamp - timestamp;
-        return sharesPerDeposit + (timeDelta * baseRate / totalDeposits);
+    function getValue() public view returns (uint256) {
+        uint256 timeDelta = block.timestamp - timestamp;
+        return sharesPerDeposit + ((timeDelta * baseRate) / totalDeposits);
     }
 
-    function getValue(address depositor) public view returns (uint) {
-        return (getValue() - depositorCursor[depositor].sharesPerDeposit) *
-        depositorCursor[depositor].deposit + depositorCursor[depositor].accumulatedDeposit;
+    function getValue(address depositor) public view returns (uint256) {
+        return
+            (getValue() - depositorCursor[depositor].sharesPerDeposit) *
+            depositorCursor[depositor].deposit +
+            depositorCursor[depositor].accumulatedDeposit;
     }
 
-    function getDeposit(address depositor) public view returns (uint) {
+    function getDeposit(address depositor) public view returns (uint256) {
         return depositorCursor[depositor].deposit;
     }
 
     function reset(address depositor) public {
-        depositorCursor[depositor] = DepositTimeCursor(0, getValue(), depositorCursor[depositor].deposit, block.timestamp);
+        depositorCursor[depositor] = DepositTimeCursor(
+            0,
+            getValue(),
+            depositorCursor[depositor].deposit,
+            block.timestamp
+        );
     }
 }

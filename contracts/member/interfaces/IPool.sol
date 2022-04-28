@@ -2,11 +2,13 @@
 pragma solidity ^0.8.4;
 
 interface IPool {
+    function deposit(uint256 amount) external;
 
-    function deposit(uint amount) external;
     function claim() external;
-    function exit() external;
-    function pay(address token, uint amount) external;
-    function rebalance() external;
 
+    function exit() external;
+
+    function pay(address token, uint256 amount) external;
+
+    function rebalance() external;
 }
