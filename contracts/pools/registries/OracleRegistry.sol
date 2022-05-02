@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../Registry.sol";
+import "./Registry.sol";
 import "../interfaces/IPriceOracle.sol";
 
 contract OracleRegistry is Registry {

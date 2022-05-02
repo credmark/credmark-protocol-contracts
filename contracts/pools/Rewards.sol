@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./oracles/OracleRegistry.sol";
+import "./registries/OracleRegistry.sol";
 import "./interfaces/IRewards.sol";
-import "./cursors/RewardsCursor.sol";
+import "./cursors/Cursor.sol";
 
 contract Rewards is Registry, IRewards {
-    RewardsCursor internal cursor;
+    Cursor internal cursor;
     OracleRegistry internal oracles;
 
     address public override rewardToken;
@@ -14,11 +14,12 @@ contract Rewards is Registry, IRewards {
 
     constructor(address registryManager) Registry(registryManager) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        cursor = new RewardsCursor(1000000000000000000000000);
+        cursor = new Cursor(true);
+        cursor.setRate(31700000000000000);
     }
 
     function setRate(uint256 rate) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        cursor.updateBaseRate(rate);
+        cursor.setRate(rate);
     }
 
     function getRewardsIssued()
@@ -28,7 +29,7 @@ contract Rewards is Registry, IRewards {
         registered(msg.sender)
         returns (uint256)
     {
-        return cursor.getValue(msg.sender);
+        return cursor.getAccumulator(msg.sender);
     }
 
     function updateShares(uint256 deposits, address token)
@@ -37,12 +38,12 @@ contract Rewards is Registry, IRewards {
         registered(msg.sender)
     {
         if (token == rewardToken) {
-            cursor.updateShares(msg.sender, deposits * multiplier[msg.sender]);
+            cursor.updateProportion(msg.sender, deposits * multiplier[msg.sender]);
         } else {
             uint256 dTokenPrice = oracles.getOracle(token).price();
             uint256 rTokenPrice = oracles.getOracle(rewardToken).price();
 
-            cursor.updateShares(
+            cursor.updateProportion(
                 msg.sender,
                 (deposits * multiplier[msg.sender] * rTokenPrice) / dTokenPrice
             );
@@ -54,6 +55,7 @@ contract Rewards is Registry, IRewards {
         override
         registered(msg.sender)
     {
+        //TODO: updateShares
         multiplier[msg.sender] = newMultiplier;
     }
 
@@ -61,5 +63,7 @@ contract Rewards is Registry, IRewards {
         external
         override
         registered(msg.sender)
-    {}
+    {
+        //TODO: Mint or issue rewards
+    }
 }

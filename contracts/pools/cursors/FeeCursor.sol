@@ -33,8 +33,7 @@ contract FeeCursor is Ownable {
             return 0;
         }
         uint256 timeDelta = block.timestamp - tokenCursor[token].timestamp;
-        value =
-            tokenCursor[token].value +
+        value = tokenCursor[token].value +
             ((timeDelta * baseRate) / tokenCursor[token].price);
     }
 }
