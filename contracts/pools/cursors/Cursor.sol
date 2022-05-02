@@ -22,7 +22,7 @@ contract Cursor is Ownable {
     }
 
     function setRate(uint rate_) external onlyOwner {
-        rate = rate;
+        rate = rate_;
         if (dilutive) {
             cursors[address(0x0)] = CursorData(
                 getValue(address(0x0)),
