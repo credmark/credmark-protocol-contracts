@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IProduct.sol";
 import "./cursors/FeeCursor.sol";
-import "./oracles/OracleRegistry.sol";
+import "./registries/OracleRegistry.sol";
 
 contract Product is AccessControl, IProduct {
     FeeCursor internal cursor;
@@ -13,7 +13,9 @@ contract Product is AccessControl, IProduct {
 
     constructor(uint256 rate, string memory name_) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        name = name_;
         cursor = new FeeCursor();
+        cursor.updateBaseRate(rate);
     }
 
     function setRate(uint256 rate) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -51,7 +53,7 @@ contract Product is AccessControl, IProduct {
         address outputToken
     ) external view override returns (uint256) {
         uint256 basePrice = oracles.getOracle(baseToken).price();
-        uint256 outputPrice = oracles.getOracle(baseToken).price();
+        uint256 outputPrice = oracles.getOracle(outputToken).price();
         return (amount * basePrice) / outputPrice;
     }
 }

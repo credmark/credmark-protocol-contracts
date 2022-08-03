@@ -22,7 +22,7 @@ const CHAIN_IDS = {
 };
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.4",
+  solidity: "0.8.7",
   networks: {
     hardhat: {
       chainId: CHAIN_IDS.hardhat,

@@ -115,10 +115,10 @@ contract Pool is AccessControl, IPool {
     }
 
     function getFee(address addr) public view returns (uint256) {
-        return product.getFee(address(depositToken)) - feeCursor[msg.sender];
+        return product.getFee(address(depositToken)) - feeCursor[addr];
     }
 
     function getRewards(address addr) public view returns (uint256) {
-        (reward.getRewardsIssued() * cursor.getValue(addr)) / 10**36;
+        return (reward.getRewardsIssued() * cursor.getValue(addr)) / 10**36;
     }
 }
