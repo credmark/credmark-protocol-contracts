@@ -82,6 +82,7 @@ export {
     populateVariables,
 
     MODL,
+    CMK,
     MODLVesting,
     MODLAllowance,
     MODLConversion,

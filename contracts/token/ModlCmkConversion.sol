@@ -55,15 +55,15 @@ contract ModlCmkConversion is BlockTimeUtils, AccessControl, ERC20 {
         depositStart = _blocktime();
     }
 
-    function deposit(address account, uint cmkAmount) external {
-        require(account != address(0), "CMERR: account must not be null address.");
-        cmk.transferFrom(account, address(this), cmkAmount);
-        _mint(account, depositAmount(cmkAmount));
+    function deposit(uint cmkAmount) external {
+        cmk.transferFrom(_msgSender(), address(this), cmkAmount);
+        _mint(_msgSender(), depositAmount(cmkAmount));
     }
 
-    function convert(address account, uint cmkModlAmount) external {
-        _burn(account, cmkModlAmount);
-        modl.mint(account, convertAmount(cmkModlAmount));
+    function convert(uint cmkModlAmount) external {
+        require(conversionStart > 0, "CMERR: Not Yet Started");
+        _burn(_msgSender(), cmkModlAmount);
+        modl.mint(_msgSender(), convertAmount(cmkModlAmount));
     }
 
     function depositAmount(uint amount) public view returns (uint) {

@@ -14,6 +14,7 @@ contract Rewards is Registry, IRewards {
 
     constructor(address registryManager) Registry(registryManager) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        //TODO: make the overall rate the Allowance per annum on the Allowance Contract.
         cursor = new Cursor(true);
         cursor.setRate(31700000000000000);
     }

@@ -6,7 +6,7 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import "../interfaces/IPriceOracle.sol";
 
-contract CmkUsdcTwapPriceOracle is IPriceOracle, AccessControl {
+contract ModlUsdcTwapPriceOracle is IPriceOracle, AccessControl {
     uint256 internal MIN_SAMPLE_LENGTH_S = 3600;
     uint256 internal X96 = 0x1000000000000000000000000;
     uint256 internal X192 = 0x1000000000000000000000000000000000000000000000000;
@@ -16,13 +16,13 @@ contract CmkUsdcTwapPriceOracle is IPriceOracle, AccessControl {
     uint256 internal lastSampleTimestamp;
     uint256 internal lastSampleidx;
 
-    IUniswapV3Pool cmkUsdcPool =
-        IUniswapV3Pool(0xF7a716E2df2BdE4D0BA7656c131b06b1Af68513c);
+    IUniswapV3Pool modlUsdcPool;
 
-    constructor() {
+    constructor(address modlUsdcPool_) {
+        modlUsdcPool = IUniswapV3Pool(modlUsdcPool_);
         buffer = new uint256[](BUFFER_LENGTH);
 
-        (uint160 sqrtPriceX96, , , , , , ) = cmkUsdcPool.slot0();
+        (uint160 sqrtPriceX96, , , , , , ) = modlUsdcPool.slot0();
         for (uint256 i = 0; i < BUFFER_LENGTH; i++) {
             buffer[i] = sqrtPriceX96;
         }
@@ -31,7 +31,7 @@ contract CmkUsdcTwapPriceOracle is IPriceOracle, AccessControl {
     function sample() public {
         if (block.timestamp > lastSampleTimestamp + MIN_SAMPLE_LENGTH_S) {
             lastSampleidx = (lastSampleidx + 1) % BUFFER_LENGTH;
-            (uint160 sqrtPriceX96, , , , , , ) = cmkUsdcPool.slot0();
+            (uint160 sqrtPriceX96, , , , , , ) = modlUsdcPool.slot0();
             buffer[lastSampleidx] = sqrtPriceX96;
             lastSampleTimestamp = block.timestamp;
         }

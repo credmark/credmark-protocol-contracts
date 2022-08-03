@@ -21,6 +21,8 @@ contract CredmarkModel is Initializable, ERC721Upgradeable, ERC721EnumerableUpgr
     }
 
     function initialize() initializer public {
+        // TODO: Add checksums in here?
+        // Also how do they collect? if ETH2 makes this cheap then whatevs on keeping this on an L2.
         __ERC721_init("Credmark Model", "MDL");
         __ERC721Enumerable_init();
         __Pausable_init();
