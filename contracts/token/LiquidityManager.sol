@@ -27,7 +27,7 @@ contract LiquidityManager {
     uint256 public liquidityTokenId;
     uint128 public currentLiquidity;
     uint24 public constant POOL_FEE = 10000;
-    int24 public constant TICK_0 = -280000;
+    uint160 internal sqrtPriceRatio;
 
     bool private _mutexLocked;
 
@@ -40,10 +40,11 @@ contract LiquidityManager {
         // I think these may be inverted.
         // Also the fact that usdc is 6 decimals makes all these numbers super fucked up.
         // :(
-        require(modl_ > usdc_, "ERROR: Modl must be token 1");
+
 
         USDC = IERC20(usdc_);
         MODL = IModl(modl_);
+
     }
 
     modifier lock() {
@@ -60,22 +61,38 @@ contract LiquidityManager {
         );
 
         UNISWAP_POOL_ADDR = FACT.createPool(
-            address(this),
+            address(MODL),
             address(USDC),
             POOL_FEE
         );
 
+        int24 tickUpper = 280000;
+        int24 tickLower = TickMath.MIN_TICK;
+        int24 tickInit = 280000;
+        address token0 = address(USDC);
+        address token1 = address(MODL);
+        sqrtPriceRatio = TickMath.MAX_SQRT_RATIO - 1;
+        
+        if(address(MODL) > address(USDC)) {
+          token1 =  address(MODL);
+          token0 =  address(USDC);
+          tickUpper = TickMath.MAX_TICK;
+          tickLower = -280000;
+          tickInit = -280000;
+          sqrtPriceRatio = TickMath.MIN_SQRT_RATIO + 1;
+        }
+
         IUniswapV3Pool(UNISWAP_POOL_ADDR).initialize(
-            TickMath.getSqrtRatioAtTick(TICK_0)
+            TickMath.getSqrtRatioAtTick(tickInit)
         );
 
         (uint256 tokenId, uint128 liquidity, , ) = NFPM.mint(
             INonfungiblePositionManager.MintParams({
-                token0: address(USDC),
-                token1: address(MODL),
+                token0: token0,
+                token1: token1,
                 fee: POOL_FEE,
-                tickLower: TickMath.MIN_TICK,
-                tickUpper: TICK_0,
+                tickLower: tickLower,
+                tickUpper: tickUpper,
                 amount0Desired: 0,
                 amount1Desired: MODL.balanceOf(address(this)),
                 amount0Min: 0,
@@ -91,6 +108,9 @@ contract LiquidityManager {
     }
 
     function cleanup() external lock {
+
+      //Can we prevent sandwich attacks??
+
         (uint256 amount0, uint256 amount1) = NFPM.collect(
             INonfungiblePositionManager.CollectParams({
                 tokenId: liquidityTokenId,
@@ -115,7 +135,7 @@ contract LiquidityManager {
                 deadline: block.timestamp,
                 amountIn: USDC.balanceOf(address(this)),
                 amountOutMinimum: 0,
-                sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+                sqrtPriceLimitX96: sqrtPriceRatio
             })
         );
 
