@@ -36,11 +36,6 @@ contract LiquidityManager {
     event LiquidityDecreased(uint128 liquidityRemoved);
 
     constructor(address modl_, address usdc_) {
-        //TODO: The CMK Twap is for token 0 status i think...
-        // I think these may be inverted.
-        // Also the fact that usdc is 6 decimals makes all these numbers super fucked up.
-        // :(
-
 
         USDC = IERC20(usdc_);
         MODL = IModl(modl_);
@@ -72,7 +67,7 @@ contract LiquidityManager {
         address token0 = address(USDC);
         address token1 = address(MODL);
         sqrtPriceRatio = TickMath.MAX_SQRT_RATIO - 1;
-        
+
         if(address(MODL) > address(USDC)) {
           token1 =  address(MODL);
           token0 =  address(USDC);
