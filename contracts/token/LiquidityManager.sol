@@ -10,7 +10,7 @@ import "../external/uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../external/uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "./Modl.sol";
+import "./IModl.sol";
 
 contract LiquidityManager {
     INonfungiblePositionManager private constant NFPM =
@@ -109,7 +109,7 @@ contract LiquidityManager {
         SWAP.exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
                 tokenIn: address(USDC),
-                tokenOut: address(this),
+                tokenOut: address(MODL),
                 fee: POOL_FEE,
                 recipient: address(this),
                 deadline: block.timestamp,

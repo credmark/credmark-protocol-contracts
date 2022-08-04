@@ -4,7 +4,7 @@ chai.use(waffle.solidity);
 
 let expect = chai.expect;
 
-import { setupProtocol, MODLConversion, MODL, DEFAULT_ADMIN_ROLE, CMK } from './helpers/contracts';
+import { setupProtocol, MODLConversion, MODL, DEFAULT_ADMIN_ROLE, CMK, USDC, liquidityManager } from './helpers/contracts';
 import { setupUsers, CREDMARK_MANAGER, HACKER_ZACH, USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID } from './helpers/users';
 import { advanceAnHour, advanceADay, advanceAMonth, advanceAYear} from './helpers/time';
 
@@ -35,8 +35,7 @@ String.prototype.TokValInt = function () {
 let depositDiv: Number;
 let conversionMul: Number;
 
-describe('ModlCmkConversion.sol', () => {
-
+describe('LiquidityManager.sol', () => {
 
     beforeEach(async () => {
         await setupProtocol();
@@ -45,13 +44,14 @@ describe('ModlCmkConversion.sol', () => {
         await CMK.connect(CREDMARK_MANAGER).transfer(USER_ALICE.address, (10000).BNTokStr());
         await CMK.connect(CREDMARK_MANAGER).transfer(USER_BRENT.address, (10000).BNTokStr());
         await CMK.connect(CREDMARK_MANAGER).transfer(USER_CAMMY.address, (10000).BNTokStr());
+        await USDC.connect(CREDMARK_MANAGER).transfer(USER_ALICE.address, "10000000000");
+        await USDC.connect(CREDMARK_MANAGER).transfer(USER_BRENT.address, "10000000000");
+        await USDC.connect(CREDMARK_MANAGER).transfer(USER_CAMMY.address, "10000000000");
 
-        await CMK.connect(USER_ALICE).approve(MODLConversion.address, (10000).BNTokStr());
-        await CMK.connect(USER_BRENT).approve(MODLConversion.address, (10000).BNTokStr());
-        await CMK.connect(USER_CAMMY).approve(MODLConversion.address, (10000).BNTokStr());
+    });
 
-        depositDiv = (await MODLConversion.depositDiv()).toNumber();
-        conversionMul = (await MODLConversion.conversionMul()).toNumber();
+    it('Cant be started empty', async () => {
+        await expect(liquidityManager.start()).to.be.reverted;
     });
 
 })

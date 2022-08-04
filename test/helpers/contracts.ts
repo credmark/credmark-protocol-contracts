@@ -1,5 +1,5 @@
 import { ethers, waffle } from 'hardhat';
-import { Modl, ModlAllowance, ModlVesting, ModlCmkConversion, MockCmk, MockUsdc } from '../../typechain';
+import { Modl, ModlAllowance, ModlVesting, ModlCmkConversion, MockCmk, MockUsdc, LiquidityManager } from '../../typechain';
 import { BytesLike, Contract, ContractFactory } from 'ethers';
 import { setupUsers, CREDMARK_DEPLOYER, CREDMARK_MANAGER, CREDMARK_TREASURY_MULTISIG } from './users';
 
@@ -9,6 +9,8 @@ let MODLVesting: ModlVesting;
 let MODLAllowance: ModlAllowance;
 let MODLConversion: ModlCmkConversion;
 let CMK: MockCmk;
+let USDC: MockCmk;
+let liquidityManager: LiquidityManager;
 
 let MINTER_ROLE: BytesLike;
 let DEFAULT_ADMIN_ROLE: BytesLike;
@@ -25,13 +27,17 @@ async function  deployContracts(){
     let ModlVestingFactory = await ethers.getContractFactory('ModlVesting', CREDMARK_DEPLOYER);
     let ModlAllowanceFactory = await ethers.getContractFactory('ModlAllowance', CREDMARK_DEPLOYER);
     let MockCmkFactory = await ethers.getContractFactory('MockCmk', CREDMARK_DEPLOYER);
+    let MockUsdcFactory = await ethers.getContractFactory('MockUsdc', CREDMARK_DEPLOYER);
     let ModlCmkConversionFactory = await ethers.getContractFactory('ModlCmkConversion', CREDMARK_DEPLOYER);
+    let LiquidityManagerFactory = await ethers.getContractFactory('LiquidityManager', CREDMARK_DEPLOYER);
 
     MODL = (await ModlFactory.deploy()) as Modl;
     MODLVesting = (await ModlVestingFactory.deploy(MODL.address)) as ModlVesting;
     MODLAllowance = (await ModlAllowanceFactory.deploy(MODL.address)) as ModlAllowance;
     CMK = (await MockCmkFactory.deploy()) as MockCmk;
+    USDC = (await MockUsdcFactory.deploy()) as MockUsdc;
     MODLConversion = (await ModlCmkConversionFactory.deploy("31536000", "100", "31536000", "24", CMK.address)) as ModlCmkConversion;
+    liquidityManager = (await LiquidityManagerFactory.deploy(MODL.address, USDC.address)) as LiquidityManager;
 }
 
 async function grantPermissions(): Promise<void> {
@@ -46,6 +52,7 @@ async function grantPermissions(): Promise<void> {
     MODLAllowance.grantRole(ALLOWANCE_MANAGER, CREDMARK_MANAGER.address);
     MODLConversion.grantRole(CONVERSION_MANAGER, CREDMARK_MANAGER.address);
     CMK.grantRole(MINTER_ROLE, CREDMARK_MANAGER.address);
+    USDC.grantRole(MINTER_ROLE, CREDMARK_MANAGER.address);
 }
 
 async function populateVariables() {
@@ -65,6 +72,8 @@ async function configure() {
 
     await CMK.connect(CREDMARK_MANAGER).mint(CREDMARK_MANAGER.address, "50000000000000000000000000");
     await CMK.connect(CREDMARK_MANAGER).mint(CREDMARK_TREASURY_MULTISIG.address, "50000000000000000000000000");
+
+    await USDC.connect(CREDMARK_MANAGER).mint(CREDMARK_MANAGER.address, "50000000000000");
 }
 
 async function setupProtocol() {
@@ -83,9 +92,11 @@ export {
 
     MODL,
     CMK,
+    USDC,
     MODLVesting,
     MODLAllowance,
     MODLConversion,
+    liquidityManager,
     
     MINTER_ROLE,
     DEFAULT_ADMIN_ROLE,
