@@ -1,5 +1,5 @@
 import { ethers, waffle } from 'hardhat';
-import { Modl, ModlAllowance, ModlVesting, ModlCmkConversion, MockCmk } from '../../typechain';
+import { Modl, ModlAllowance, ModlVesting, ModlCmkConversion, MockCmk, MockUsdc } from '../../typechain';
 import { BytesLike, Contract, ContractFactory } from 'ethers';
 import { setupUsers, CREDMARK_DEPLOYER, CREDMARK_MANAGER, CREDMARK_TREASURY_MULTISIG } from './users';
 
