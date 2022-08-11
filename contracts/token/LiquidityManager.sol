@@ -49,17 +49,22 @@ contract LiquidityManager {
         _mutexLocked = false;
     }
 
+    function createPool() public returns (address) {
+        UNISWAP_POOL_ADDR = FACT.createPool(
+            address(MODL),
+            address(USDC),
+            POOL_FEE
+        );
+        return UNISWAP_POOL_ADDR;
+    }
+
     function start() external {
         require(
             MODL.balanceOf(address(this)) > 0,
             "Can't start until I've got Modl, bb"
         );
 
-        UNISWAP_POOL_ADDR = FACT.createPool(
-            address(MODL),
-            address(USDC),
-            POOL_FEE
-        );
+        createPool();
 
         int24 tickUpper = 280000;
         int24 tickLower = TickMath.MIN_TICK;
