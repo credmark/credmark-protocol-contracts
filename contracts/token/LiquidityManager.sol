@@ -23,15 +23,20 @@ contract LiquidityManager {
     IERC20 private USDC;
     IModl private MODL;
 
-    address public UNISWAP_POOL_ADDR;
+    IUniswapV3Pool public pool;
     uint256 public liquidityTokenId;
     uint128 public currentLiquidity;
     uint24 public constant POOL_FEE = 10000;
-    uint160 internal sqrtPriceRatio;
+
+    uint160 internal sqrtPriceRatio = 1461446703485210103287273052203988822378723970341;
+    int24 tickUpper = 870000;
+    int24 tickLower = -870000;
+    int24 tickInit = 276300;
 
     bool private _mutexLocked;
+    bool public started = false;
 
-    event Started(address poolAddress);
+    event Started();
     event Cleanup(uint256 modlBurned);
     event LiquidityDecreased(uint128 liquidityRemoved);
 
@@ -43,74 +48,69 @@ contract LiquidityManager {
     }
 
     modifier lock() {
-        require(!_mutexLocked, "ERROR: mutex locked");
+        require(!_mutexLocked, "CMERR: mutex locked");
         _mutexLocked = true;
         _;
         _mutexLocked = false;
     }
 
-    function createPool() public returns (address) {
-        UNISWAP_POOL_ADDR = FACT.createPool(
+    function start() external lock() {
+
+        require(!started, "CMERR: Pool already Started");
+        require(
+            MODL.balanceOf(address(this)) > 0,
+            "CMERR: Can't start without Tokens"
+        );
+
+        address poolAddress = FACT.createPool(
             address(MODL),
             address(USDC),
             POOL_FEE
         );
-        return UNISWAP_POOL_ADDR;
-    }
 
-    function start() external {
-        require(
-            MODL.balanceOf(address(this)) > 0,
-            "Can't start until I've got Modl, bb"
-        );
+        require(poolAddress != address(0), "CMERR: Couldn't create uniswap pool.");
 
-        createPool();
+        pool = IUniswapV3Pool(poolAddress);
 
-        int24 tickUpper = 280000;
-        int24 tickLower = TickMath.MIN_TICK;
-        int24 tickInit = 280000;
-        address token0 = address(USDC);
-        address token1 = address(MODL);
-        sqrtPriceRatio = TickMath.MAX_SQRT_RATIO - 1;
-
-        if(address(MODL) > address(USDC)) {
-          token1 =  address(MODL);
-          token0 =  address(USDC);
-          tickUpper = TickMath.MAX_TICK;
-          tickLower = -280000;
-          tickInit = -280000;
-          sqrtPriceRatio = TickMath.MIN_SQRT_RATIO + 1;
+        if (pool.token0() == address(MODL)){
+            tickLower = tickInit + 100;
+        } else {
+            tickInit = -tickInit;
+            tickUpper = tickInit - 100;
         }
 
-        IUniswapV3Pool(UNISWAP_POOL_ADDR).initialize(
+        pool.initialize(
             TickMath.getSqrtRatioAtTick(tickInit)
         );
 
+        require(address(pool) != address(0), "CMERR: Pool Not Created Successfully");
+
+        TransferHelper.safeApprove(address(MODL), address(NFPM), MODL.balanceOf(address(this)));
+
         (uint256 tokenId, uint128 liquidity, , ) = NFPM.mint(
             INonfungiblePositionManager.MintParams({
-                token0: token0,
-                token1: token1,
-                fee: POOL_FEE,
+                token0: pool.token0(),
+                token1: pool.token1(),
+                fee: pool.fee(),
                 tickLower: tickLower,
                 tickUpper: tickUpper,
-                amount0Desired: 0,
-                amount1Desired: MODL.balanceOf(address(this)),
+                amount0Desired: IERC20(pool.token0()).balanceOf(address(this)),
+                amount1Desired: IERC20(pool.token1()).balanceOf(address(this)),
                 amount0Min: 0,
-                amount1Min: 1,
+                amount1Min: 0,
                 recipient: address(this),
                 deadline: block.timestamp
-            })
-        );
+            }));
+
         liquidityTokenId = tokenId;
         currentLiquidity = liquidity;
-
-        emit Started(UNISWAP_POOL_ADDR);
+        started = true;
+        emit Started();
     }
 
-    function cleanup() external lock {
 
-      //Can we prevent sandwich attacks??
-
+    function clean() external lock() {
+        require(started, "CMERR: Pool not started");
         (uint256 amount0, uint256 amount1) = NFPM.collect(
             INonfungiblePositionManager.CollectParams({
                 tokenId: liquidityTokenId,
@@ -119,6 +119,7 @@ contract LiquidityManager {
                 amount1Max: type(uint128).max
             })
         );
+
 
         TransferHelper.safeApprove(
             address(USDC),
@@ -135,7 +136,7 @@ contract LiquidityManager {
                 deadline: block.timestamp,
                 amountIn: USDC.balanceOf(address(this)),
                 amountOutMinimum: 0,
-                sqrtPriceLimitX96: sqrtPriceRatio
+                sqrtPriceLimitX96: 0
             })
         );
 

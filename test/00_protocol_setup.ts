@@ -57,11 +57,11 @@ describe('Protocol Setup - Post Setup', () => {
         expect(await MODL.hasRole(MINTER_ROLE, MODLVesting.address)).to.be.true;
     })
 
-    it("Modl Allowance is  a minter of Modl", async () => {
+    it("Modl Allowance is a minter of Modl", async () => {
         expect(await MODL.hasRole(MINTER_ROLE, MODLAllowance.address)).to.be.true;
     })
 
-    it("Modl Conversion is  a minter of Modl", async () => {
+    it("Modl Conversion is a minter of Modl", async () => {
         expect(await MODL.hasRole(MINTER_ROLE, MODLConversion.address)).to.be.true;
     })
 

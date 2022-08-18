@@ -16,6 +16,7 @@ let HACKER_ZACH: SignerWithAddress;
 let HACKER_YITZACK: SignerWithAddress;
 let USERS: Array<SignerWithAddress>;
 
+let MOCK_GODMODE: SignerWithAddress;
 
 async function setupUsers() {
     [
@@ -29,7 +30,8 @@ async function setupUsers() {
         USER_CAMMY,
         USER_DAVID,
         HACKER_ZACH,
-        HACKER_YITZACK
+        HACKER_YITZACK,
+        MOCK_GODMODE
     ] = await ethers.getSigners();
     USERS = [USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID];
 }
@@ -47,5 +49,6 @@ export {
     USER_DAVID,
     HACKER_ZACH,
     HACKER_YITZACK,
-    USERS
+    USERS,
+    MOCK_GODMODE
 }
