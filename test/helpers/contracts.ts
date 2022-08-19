@@ -18,6 +18,7 @@ let MINTER_ROLE: BytesLike;
 let DEFAULT_ADMIN_ROLE: BytesLike;
 let PAUSER_ROLE: BytesLike;
 let SNAPSHOT_ROLE: BytesLike;
+let CLEANER_ROLE:BytesLike;
 let VESTING_MANAGER: BytesLike;
 let ALLOWANCE_MANAGER: BytesLike;
 let CONVERSION_MANAGER: BytesLike;
@@ -70,6 +71,7 @@ async function grantPermissions(): Promise<void> {
     MODLVesting.grantRole(VESTING_MANAGER, CREDMARK_MANAGER.address);
     MODLAllowance.grantRole(ALLOWANCE_MANAGER, CREDMARK_MANAGER.address);
     MODLConversion.grantRole(CONVERSION_MANAGER, CREDMARK_MANAGER.address);
+    liquidityManager.grantRole(CLEANER_ROLE, CREDMARK_MANAGER.address);
 }
 
 async function populateVariables() {
@@ -81,7 +83,8 @@ async function populateVariables() {
     VESTING_MANAGER = (await MODLVesting.VESTING_MANAGER()) as BytesLike;
     ALLOWANCE_MANAGER = (await MODLAllowance.ALLOWANCE_MANAGER()) as BytesLike;
     CONVERSION_MANAGER = (await MODLConversion.CONVERSION_MANAGER()) as BytesLike;
-
+    CLEANER_ROLE = (await liquidityManager.CLEANER_ROLE()) as BytesLike;
+    
 }
 
 async function configure() {

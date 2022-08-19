@@ -3,6 +3,7 @@ pragma solidity >=0.8.7;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
@@ -12,7 +13,9 @@ import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../external/uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "./IModl.sol";
 
-contract LiquidityManager {
+contract LiquidityManager is AccessControl{
+    bytes32 public constant CLEANER_ROLE = keccak256("CLEANER_ROLE");
+    bytes32 public constant LIQUIDITY_ROLE = keccak256("LIQUIDITY_ROLE");
     INonfungiblePositionManager private constant NFPM =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     ISwapRouter private constant SWAP =
@@ -28,23 +31,24 @@ contract LiquidityManager {
     uint128 public currentLiquidity;
     uint24 public constant POOL_FEE = 10000;
 
-    uint160 internal sqrtPriceRatio = 1461446703485210103287273052203988822378723970341;
     int24 tickUpper = 870000;
     int24 tickLower = -870000;
-    int24 tickInit = 276300;
+    int24 tickInit = -276300;
 
     bool private _mutexLocked;
     bool public started = false;
+
+    uint160 sqrtPriceLimitSnap;
+    uint sqrtPriceLimitSnapTimestamp;
 
     event Started();
     event Cleanup(uint256 modlBurned);
     event LiquidityDecreased(uint128 liquidityRemoved);
 
     constructor(address modl_, address usdc_) {
-
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         USDC = IERC20(usdc_);
         MODL = IModl(modl_);
-
     }
 
     modifier lock() {
@@ -108,9 +112,12 @@ contract LiquidityManager {
         emit Started();
     }
 
-
-    function clean() external lock() {
+    function clean(uint160 sqrtPriceLimitX96) external onlyRole(CLEANER_ROLE){
         require(started, "CMERR: Pool not started");
+
+        (uint160 sqrtPriceLimitX96Check,,,,,,) = pool.slot0();
+        require(sqrtPriceLimitX96Check == sqrtPriceLimitX96, "CMERR: sqrtPriceLimit doesn't match.");
+
         (uint256 amount0, uint256 amount1) = NFPM.collect(
             INonfungiblePositionManager.CollectParams({
                 tokenId: liquidityTokenId,
@@ -119,7 +126,6 @@ contract LiquidityManager {
                 amount1Max: type(uint128).max
             })
         );
-
 
         TransferHelper.safeApprove(
             address(USDC),
@@ -146,11 +152,10 @@ contract LiquidityManager {
         emit Cleanup(modlBalanceToBurn);
     }
 
-    function decreaseLiquidity() external lock {
-        // TODO: figure out when we'd want to do this, if ever.
-        uint128 liquidityToRemove = currentLiquidity / 50;
+    function decreaseLiquidity() external onlyRole(LIQUIDITY_ROLE) {
+        uint128 liquidityToRemove = currentLiquidity / 10;
 
-        (, uint256 amount1) = NFPM.decreaseLiquidity(
+        (uint256 amount0, uint256 amount1) = NFPM.decreaseLiquidity(
             INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: liquidityTokenId,
                 liquidity: liquidityToRemove,

@@ -9,6 +9,7 @@ import { setupUsers, CREDMARK_MANAGER, HACKER_ZACH, USER_ALICE, USER_BRENT, USER
 import { advanceAnHour, advanceADay, advanceAMonth, advanceAYear} from './helpers/time';
 import { IUniswapV3Pool } from '../typechain';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { BigNumber } from 'ethers';
 
 
 function expectClose(value: number, expectedValue: number) {
@@ -37,6 +38,10 @@ String.prototype.TokValInt = function () {
 let depositDiv: Number;
 let conversionMul: Number;
 
+let priceDiff = function(oldPrice: number, newPrice: number) {
+  return (((newPrice-oldPrice) / oldPrice)* 100)
+}
+
 describe('LiquidityManager.sol operation', () => {
     let uniswapV3Pool: IUniswapV3Pool;
     before(async function () {
@@ -44,15 +49,14 @@ describe('LiquidityManager.sol operation', () => {
         await setupProtocol();
 
 
-        await USDC.connect(CREDMARK_MANAGER).transfer(USER_ALICE.address, "10000000000");
-        await USDC.connect(CREDMARK_MANAGER).transfer(USER_BRENT.address, "10000000000");
-        await USDC.connect(CREDMARK_MANAGER).transfer(USER_CAMMY.address, "10000000000");
+        await USDC.connect(CREDMARK_MANAGER).transfer(USER_ALICE.address, "1000000000000");
+        await USDC.connect(CREDMARK_MANAGER).transfer(USER_BRENT.address, "1000000000000");
+        await USDC.connect(CREDMARK_MANAGER).transfer(USER_CAMMY.address, "1000000000000");
 
         await MODL.connect(CREDMARK_DEPLOYER).grantRole(MINTER_ROLE, CREDMARK_TREASURY_MULTISIG.address);
         advanceAnHour()
-        await MODL.connect(CREDMARK_TREASURY_MULTISIG).mint(liquidityManager.address, (7500000).BNTokStr());
+        await MODL.connect(CREDMARK_TREASURY_MULTISIG).mint(liquidityManager.address, (6700000).BNTokStr());
 
-        await liquidityManager.createPool();
         await liquidityManager.start();
 
         uniswapV3Pool = (await ethers.getContractAt(
@@ -76,6 +80,17 @@ describe('LiquidityManager.sol operation', () => {
           amountOutMinimum: 0,
         });
       }
+      async function price() {
+        let slot0 = await uniswapV3Pool.slot0();
+        if (BigNumber.from("0x1000000000000000000000000").gt(slot0.sqrtPriceX96)){
+          let x = BigNumber.from("0x1000000000000000000000000").div(slot0.sqrtPriceX96).toNumber();
+          let price = ((1/(x*x)) * (1000000) * (1000000)) ;
+          return price;
+        }
+        let x = slot0.sqrtPriceX96.div(BigNumber.from("0x1000000000000000000000000")).toNumber();
+        let price = ((x*x) / (1000000) / (1000000)) ;
+        return price;
+      }
 
       async function swapUSDC(account: SignerWithAddress, amount: string) {
         await USDC.connect(account).approve(swapRouter.address, amount);
@@ -93,11 +108,27 @@ describe('LiquidityManager.sol operation', () => {
       }
     
     it('Can swap', async () => {
-        console.log((await uniswapV3Pool.slot0()))
-        console.log((await USDC.balanceOf(USER_ALICE.address)).toNumber())
-        await swapUSDC(USER_ALICE, '100000000');
-        console.log((await USDC.balanceOf(USER_ALICE.address)).toNumber())
-        console.log((await MODL.balanceOf(USER_ALICE.address)).toNumber())
-        expect((await MODL.balanceOf(USER_ALICE.address)).toNumber()).to.not.eq(0);
+      console.log(await price())
+      await swapUSDC(USER_ALICE, '1');
+      let p0 = await price();
+        console.log(await price())
+        await swapUSDC(USER_ALICE, '999999000000');
+        await swapUSDC(USER_BRENT, '1000000000000');
+        await swapUSDC(USER_CAMMY, '1000000000000');
+      let p1 = await price();
+      console.log(priceDiff(p0, p1) + '%');
+        console.log(await price())
+        console.log((await MODL.balanceOf(USER_ALICE.address)).toString().TokValInt())
+        expect((await MODL.balanceOf(USER_ALICE.address))).to.not.eq(0);
+
+        await swapModl(USER_ALICE, (await MODL.balanceOf(USER_ALICE.address)).toString())
+        await swapModl(USER_BRENT, (await MODL.balanceOf(USER_BRENT.address)).toString())
+        await swapModl(USER_CAMMY, (await MODL.balanceOf(USER_CAMMY.address)).toString())
+
+        console.log(await price());
+        let slot0 = await uniswapV3Pool.slot0();
+        await liquidityManager.connect(CREDMARK_MANAGER).clean(slot0.sqrtPriceX96.toString());
+        console.log(await price());
+        console.log((await USDC.balanceOf(uniswapV3Pool.address)).toString())
     });
 });

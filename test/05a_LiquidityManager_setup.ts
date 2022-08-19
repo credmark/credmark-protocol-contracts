@@ -71,17 +71,13 @@ describe('LiquidityManager.sol : setup', () => {
         await setupProtocol();
         await expect(liquidityManager.start()).reverted;
         expect(await liquidityManager.started().valueOf()).false;
-        await expect(liquidityManager.clean()).reverted;
         
         await MODL.connect(CREDMARK_DEPLOYER).mint(liquidityManager.address, (10000000).BNTokStr());
         await expect(liquidityManager.start()).not.reverted;
         expect(await liquidityManager.started().valueOf()).true;
         expect(await liquidityManager.started().valueOf()).not.eq(NULL_ADDRESS);
         await expect(liquidityManager.start()).reverted;
-        await expect(liquidityManager.clean()).reverted;
+        await expect(liquidityManager.clean("0")).reverted;
         await USDC.connect(CREDMARK_MANAGER).transfer(liquidityManager.address, "10000000000");
-        console.log(await liquidityManager.clean());
-
     });
-    
 });
