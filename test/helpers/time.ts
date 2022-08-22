@@ -20,9 +20,15 @@ async function advanceAYear() {
     await ethers.provider.send("evm_mine", []);
 }
 
+async function advance1000Seconds() {
+    await ethers.provider.send("evm_increaseTime", [1000]);
+    await ethers.provider.send("evm_mine", []);
+}
+
 export {
     advanceAnHour,
     advanceADay,
     advanceAMonth,
-    advanceAYear
+    advanceAYear,
+    advance1000Seconds
 }
