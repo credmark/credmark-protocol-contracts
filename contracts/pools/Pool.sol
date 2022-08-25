@@ -5,120 +5,101 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./interfaces/IProduct.sol";
-import "./interfaces/IRewards.sol";
-import "./interfaces/IPool.sol";
-import "./cursors/DepositCursor.sol";
+import "./accumulators/ShareAccumulator.sol";
+import "./accumulators/PriceAccumulator.sol";
 
-contract Pool is AccessControl, IPool {
+import "../libraries/Time.sol";
+
+contract Pool is AccessControl {
     using SafeERC20 for IERC20;
-
-    IProduct product;
-    IRewards reward;
 
     IERC20 depositToken;
 
-    DepositCursor cursor;
+    ShareAccumulator depositAccumulator;
+    ShareAccumulator rewardsAccumulator;
+    PriceAccumulator priceAccumulator;
+    address revenueTreasury;
+
+    mapping(address => uint256) priceAccumulatorOffset;
 
     uint256 lockup;
+    uint256 multiplier;
     bool subscribable;
-    mapping(address => uint256) feeCursor;
+    uint256 monthlyFee;
 
     constructor(
         uint256 multiplier_,
         uint256 lockupSeconds_,
+        uint256 monthlyFee_,
         bool subscribable_,
         IERC20 depositToken_,
-        IProduct product_,
-        IRewards rewards_
+        ShareAccumulator rewardsAccumulator_,
+        PriceAccumulator priceAccumulator_
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         lockup = lockupSeconds_;
+        multiplier = multiplier_;
         subscribable = subscribable_;
         depositToken = depositToken_;
-        reward = rewards_;
-        product = product_;
+        monthlyFee = monthlyFee_;
 
-        cursor = new DepositCursor();
+        rewardsAccumulator = rewardsAccumulator_;
+        priceAccumulator = priceAccumulator_;
+
+        depositAccumulator = new ShareAccumulator();
+        depositAccumulator.grantRole(depositAccumulator.ACCUMULATOR_ROLE(), address(this));
+
     }
 
-    function deposit(uint256 amount) external override {
+    function depositTokenPrice() public view returns (uint price, uint8 decimals) {
+        return (100000000, 8);
+    }
+
+    function deposit(uint256 amount) external {
         depositToken.transferFrom(msg.sender, address(this), amount);
 
-        uint256 previousDeposit = cursor.getDeposit(msg.sender);
+        (uint price, uint8 decimals) = depositTokenPrice();
 
-        if (previousDeposit == 0) {
-            product.updatePrice(address(depositToken));
-            feeCursor[msg.sender] = product.getFee(address(depositToken));
+        depositAccumulator.setShares(msg.sender, depositAccumulator.getShares(msg.sender) + amount);
+        rewardsAccumulator.setShares(
+            address(this), depositToken.balanceOf(address(this)) * price * multiplier / (10**decimals));
+        priceAccumulator.setPrice(address(depositToken), price);
+
+        if (priceAccumulatorOffset[msg.sender] == 0){
+            priceAccumulatorOffset[msg.sender] = priceAccumulator.getOffset(address(depositToken));
         }
-        cursor.updateDeposit(msg.sender, previousDeposit + amount);
-        reward.updateShares(cursor.totalDeposits(), address(depositToken));
     }
 
-    function exit() external override {
-        if (getFee(msg.sender) < getDeposit(msg.sender)) {
+    function exit() external {
+        require(depositAccumulator.getShares(msg.sender) > 0, "CMERR: no deposit");
+        (uint price, uint8 decimals) = depositTokenPrice();
+        if (getFee(msg.sender) < depositAccumulator.getShares(msg.sender)) {
             depositToken.transfer(
                 msg.sender,
-                getDeposit(msg.sender) - getFee(msg.sender)
+                depositAccumulator.getShares(msg.sender) - getFee(msg.sender)
             );
         }
 
-        cursor.updateDeposit(msg.sender, 0);
-        reward.updateShares(cursor.totalDeposits(), address(depositToken));
+        depositAccumulator.setShares(msg.sender, 0);
+        rewardsAccumulator.setShares(
+            address(this), depositToken.balanceOf(address(this)) * price * multiplier / (10**decimals));
     }
 
-    function claim() external override {
-        reward.issueRewards(msg.sender, getRewards(msg.sender));
-        cursor.reset(msg.sender);
-    }
 
-    function rebalance() external override {
-        require(
-            address(depositToken) == reward.rewardToken(),
-            "cannot rebalance mismatched pools"
-        );
-
-        uint256 rewards = getRewards(msg.sender);
-        reward.issueRewards(address(this), rewards);
-        uint256 previousDeposit = cursor.getDeposit(msg.sender);
-
-        cursor.updateDeposit(msg.sender, previousDeposit + rewards);
-        reward.updateShares(cursor.totalDeposits(), address(depositToken));
-
-        cursor.reset(msg.sender);
-    }
-
-    function pay(address token, uint256 amount) external override {
-        uint256 fee = getFee(msg.sender);
-        uint256 equivalentFee = product.getEquivalentAmount(
-            address(depositToken),
-            fee,
-            token
-        );
-        require(equivalentFee >= amount, "Don't overpay, my dear");
-
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
-        feeCursor[msg.sender] += ((amount * equivalentFee) / fee);
-    }
-
-    function setMultiplier(uint256 multiplier)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        reward.updateMultiplier(multiplier);
-        reward.updateShares(cursor.totalDeposits(), address(depositToken));
-    }
-
-    function getDeposit(address addr) public view returns (uint256) {
-        return cursor.getDeposit(addr);
+    function getDeposit(address addr) public view returns (uint) {
+        return depositAccumulator.shares(addr);
     }
 
     function getFee(address addr) public view returns (uint256) {
-        return product.getFee(address(depositToken)) - feeCursor[addr];
+        return (priceAccumulator.getOffset(address(depositToken)) - priceAccumulatorOffset[addr]) * monthlyFee / (30 * 24 * 60 * 60);
     }
 
     function getRewards(address addr) public view returns (uint256) {
-        return (reward.getRewardsIssued() * cursor.getValue(addr)) / 10**36;
+        return (
+            rewardsAccumulator.accumulation(address(this)) /
+            rewardsAccumulator.totalAccumulation()
+        );
     }
+
 }

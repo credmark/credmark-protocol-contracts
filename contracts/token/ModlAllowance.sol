@@ -3,9 +3,9 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IModl.sol";
-import "../utils/BlockTimeUtils.sol";
+import "../libraries/Time.sol";
 
-contract ModlAllowance is BlockTimeUtils, AccessControl {
+contract ModlAllowance is AccessControl {
     bytes32 public constant ALLOWANCE_MANAGER = keccak256("ALLOWANCE_MANAGER");
 
     uint private _perAnnum = 86400 * 365;
@@ -43,7 +43,7 @@ contract ModlAllowance is BlockTimeUtils, AccessControl {
 
         _claim(account);
 
-        allowance[account].start = _blocktime64();
+        allowance[account].start = Time.now_u64();
         allowance[account].amountPerAnnum = amountPerAnnum;
 
         require(totalAllowancePerAnnum <= ceiling, "CMERR: Cannot allocate more than ceiling.");
@@ -65,7 +65,7 @@ contract ModlAllowance is BlockTimeUtils, AccessControl {
     function _claim(address account) internal {
         uint amount = claimableAmount(account);
 
-        allowance[account].start = _blocktime64();
+        allowance[account].start = Time.now_u64();
         totalClaimed += amount;
 
         _modl.mint(account, amount);
@@ -74,6 +74,6 @@ contract ModlAllowance is BlockTimeUtils, AccessControl {
     }
 
     function claimableAmount(address account) public view returns (uint256) {
-        return ( _blocktime64() - allowance[account].start ) * allowance[account].amountPerAnnum / _perAnnum;
+        return Time.since(allowance[account].start) * allowance[account].amountPerAnnum / _perAnnum;
     }
 }

@@ -111,24 +111,17 @@ describe('LiquidityManager.sol operation', () => {
       console.log(await price())
       await swapUSDC(USER_ALICE, '1');
       let p0 = await price();
-        console.log(await price())
         await swapUSDC(USER_ALICE, '999999000000');
         await swapUSDC(USER_BRENT, '1000000000000');
         await swapUSDC(USER_CAMMY, '1000000000000');
       let p1 = await price();
-      console.log(priceDiff(p0, p1) + '%');
-        console.log(await price())
-        console.log((await MODL.balanceOf(USER_ALICE.address)).toString().TokValInt())
         expect((await MODL.balanceOf(USER_ALICE.address))).to.not.eq(0);
 
         await swapModl(USER_ALICE, (await MODL.balanceOf(USER_ALICE.address)).toString())
         await swapModl(USER_BRENT, (await MODL.balanceOf(USER_BRENT.address)).toString())
         await swapModl(USER_CAMMY, (await MODL.balanceOf(USER_CAMMY.address)).toString())
 
-        console.log(await price());
         let slot0 = await uniswapV3Pool.slot0();
         await liquidityManager.connect(CREDMARK_MANAGER).clean(slot0.sqrtPriceX96.toString());
-        console.log(await price());
-        console.log((await USDC.balanceOf(uniswapV3Pool.address)).toString())
     });
 });

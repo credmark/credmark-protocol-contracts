@@ -3,9 +3,9 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IModl.sol";
-import "../utils/BlockTimeUtils.sol";
+import "../libraries/Time.sol";
 
-contract ModlVesting is BlockTimeUtils, AccessControl {
+contract ModlVesting is AccessControl {
     bytes32 public constant VESTING_MANAGER = keccak256("VESTING_MANAGER");
 
     struct Vesting {
@@ -43,8 +43,8 @@ contract ModlVesting is BlockTimeUtils, AccessControl {
 
         totalAllocated = totalAllocated + amount - vesting[account].amount;
 
-        vesting[account].start = uint64(_blocktime());
-        vesting[account].end = uint64(_blocktime() + duration);
+        vesting[account].start = Time.now_u64();
+        vesting[account].end = uint64(Time.now_u256() + duration);
         vesting[account].amount = amount;
 
         require(totalAllocated <= ceiling, "CMERR: Cannot allocate more than ceiling.");
@@ -67,7 +67,7 @@ contract ModlVesting is BlockTimeUtils, AccessControl {
         uint amount = claimableAmount(account);
 
         vesting[account].amount -= amount;
-        vesting[account].start = uint64(_blocktime());
+        vesting[account].start = Time.now_u64();
 
         _modl.mint(account, amount);
 
@@ -75,10 +75,7 @@ contract ModlVesting is BlockTimeUtils, AccessControl {
     }
 
     function claimableAmount(address account) public view returns (uint256) {
-        if (_blocktime() > vesting[account].end) {
-            return vesting[account].amount;
-        }
-        return elapsedWithScalar(
+        return Time.windowElapsedValue(
                 vesting[account].start,
                 vesting[account].end,
                 vesting[account].amount

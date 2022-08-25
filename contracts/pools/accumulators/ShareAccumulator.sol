@@ -2,45 +2,65 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "../../libraries/Time.sol";
 
 contract ShareAccumulator is AccessControl {
 
+    bytes32 public constant ACCUMULATOR_ROLE = keccak256("ACCUMULATOR_ROLE");
+    uint internal constant R = 10**18;
+
     mapping(address => uint) public shares;
-    mapping(address => uint) public accumulators;
-    mapping(address => uint) public accumulator_ts;
+    mapping(address => uint) internal offset;
+    mapping(address => uint) internal accumulations;
+
+    uint internal gShares;
+    uint internal gOffset;
+    uint internal gOffTimestamp;
+    uint internal gAccTimestamp;
+    uint internal gAccumulation;
 
     constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function updateShares(address account, uint newShares) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(account != address(0), "CMERR: Cannot manually set global shares.");
+    function setShares(address account, uint newShares) external onlyRole(ACCUMULATOR_ROLE) {
+        accumulations[account] = accumulation(account);
+        offset[account] = globalOffset();
 
-        accumulators[address(0)] = totalAccumulation();
-        accumulator_ts[address(0)] = block.timestamp;
+        if (gShares == 0) {
+            gAccTimestamp = Time.now_u256();
+        }
 
-        accumulators[account] = accumulation(account);
-        accumulator_ts[account] = block.timestamp;
+        if (newShares == 0 && gShares == shares[account]) {
+            gAccumulation = totalAccumulation();
+        }
 
-        shares[address(0)] += newShares - shares[account];
+        gOffset = offset[account];
+        gOffTimestamp = Time.now_u256();
+        gShares = gShares + newShares - shares[account];
         shares[account] = newShares;
     }
 
-    function advanceAccumulator(address account, uint accumulation) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(accumulation > accumulators[account], "CMERR");
-        accumulators[account] -= accumulation;
-        accumulators[address(0)] -= accumulation;
+    function getShares(address account) external view returns (uint) {
+        return shares[account];
     }
 
-    function accumulation(address account) view public returns (uint) {
-        return _ts_delta(account) * shares[account] + accumulators[account];
+    function removeAccumulation(address account) external onlyRole(ACCUMULATOR_ROLE) {
+        gAccumulation = totalAccumulation() - accumulation(account);
+        gAccTimestamp = Time.now_u256();
+        offset[account] = globalOffset();
+        accumulations[account] = 0;
     }
 
-    function totalAccumulation() view public returns (uint) {
-        return  _ts_delta(address(0)) * shares[address(0)] + accumulators[address(0)];
+    function accumulation(address account) public view returns (uint) {
+        return shares[account] * ( globalOffset() - offset[account] ) + accumulations[account];
     }
 
-    function _ts_delta(address account) private view returns (uint) {
-        return block.timestamp - accumulator_ts[account];
+    function globalOffset() internal view returns (uint) {
+        return gShares == 0 ? gOffset : gOffset + (Time.since(gOffTimestamp) * R / gShares);
+    }
+
+    function totalAccumulation() public view returns (uint) {
+        return gShares == 0 ? gAccumulation : gAccumulation + (Time.since(gAccTimestamp) * R);
     }
 }

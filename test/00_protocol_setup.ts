@@ -3,7 +3,7 @@ import { expect, use } from "chai";
 
 use(waffle.solidity);
 
-import { setupProtocol, MODL, MODLVesting, MODLAllowance, MODLConversion, deployContracts, MINTER_ROLE, populateVariables } from './helpers/contracts';
+import { setupProtocol, MODL, MODLVesting, MODLAllowance, MODLConversion, deployContracts, MINTER_ROLE } from './helpers/contracts';
 import { setupUsers } from './helpers/users';
 
 describe('Protocol Setup - Deployment', () => {
@@ -32,7 +32,6 @@ describe('Protocol Setup - Deployment', () => {
 describe('Protocol Setup - Pre Initialization', () => {
     before(async () => {
         await deployContracts();
-        await populateVariables();
     });
 
     it("Modl Vesting is not a minter of Modl", async () => {

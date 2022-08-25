@@ -4,9 +4,9 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./IModl.sol";
-import "../utils/BlockTimeUtils.sol";
+import "../libraries/Time.sol";
 
-contract ModlCmkConversion is BlockTimeUtils, AccessControl, ERC20 {
+contract ModlCmkConversion is  AccessControl, ERC20 {
     bytes32 public constant CONVERSION_MANAGER = keccak256("CONVERSION_MANAGER");
 
     IERC20 public cmk;
@@ -47,12 +47,12 @@ contract ModlCmkConversion is BlockTimeUtils, AccessControl, ERC20 {
 
     function startConversions() external onlyRole(CONVERSION_MANAGER) {
         require(conversionStart == 0, "CMERR: Already Started");
-        conversionStart = _blocktime();
+        conversionStart = Time.now_u256();
     }
 
     function startDeposits() external onlyRole(CONVERSION_MANAGER) {
         require(depositStart == 0, "CMERR: Already Started");
-        depositStart = _blocktime();
+        depositStart = Time.now_u256();
     }
 
     function deposit(uint cmkAmount) external {
@@ -71,19 +71,19 @@ contract ModlCmkConversion is BlockTimeUtils, AccessControl, ERC20 {
             return amount / depositDiv;
         }
         uint end = depositStart + depositDuration;
-        if (end < _blocktime()) {
+        if (end < Time.now_u256()) {
             return 0;
         }
-        return amount * (end - _blocktime()) / depositDuration / depositDiv;
+        return amount * (end - Time.now_u256()) / depositDuration / depositDiv;
     }
 
     function convertAmount(uint amount) public view returns (uint) {
         if(conversionStart == 0) {
             return 0;
         }
-        if (conversionStart + conversionDuration < _blocktime()) {
+        if (conversionStart + conversionDuration < Time.now_u256()) {
             return amount * conversionMul + amount;
         }
-        return (_blocktime() - depositStart) * amount * conversionMul / depositDuration + amount;
+        return Time.since(depositStart) * amount * conversionMul / depositDuration + amount;
     }
 }
