@@ -1,28 +1,37 @@
 import { ethers, waffle } from 'hardhat';
 
-async function advanceAnHour() {
-    await ethers.provider.send("evm_increaseTime", [3600]);
+let prevTs = 0;
+
+async function advanceX(seconds: number) {
+    let currentBlockTimestamp = (await ethers.provider.getBlock("latest")).timestamp 
+    if (prevTs == 0 || prevTs > currentBlockTimestamp){
+        prevTs = currentBlockTimestamp;
+    }
+    
+    let advance =  seconds - (currentBlockTimestamp - prevTs);
+    await ethers.provider.send("evm_increaseTime", [advance]);
     await ethers.provider.send("evm_mine", []);
+    prevTs = prevTs + seconds;
+}
+
+async function advanceAnHour() {
+    return await advanceX(3600);
 }
 
 async function advanceADay() {
-    await ethers.provider.send("evm_increaseTime", [86400]);
-    await ethers.provider.send("evm_mine", []);
+    return await advanceX(86400);
 }
 
 async function advanceAMonth() {
-    await ethers.provider.send("evm_increaseTime", [86400 * 30]);
-    await ethers.provider.send("evm_mine", []);
+    return await advanceX(86400 * 30);
 }
 
 async function advanceAYear() {
-    await ethers.provider.send("evm_increaseTime", [86400 * 365]);
-    await ethers.provider.send("evm_mine", []);
+    return await advanceX(86400 * 365);
 }
 
 async function advance1000Seconds() {
-    await ethers.provider.send("evm_increaseTime", [1000]);
-    await ethers.provider.send("evm_mine", []);
+    return await advanceX(1000);
 }
 
 export {

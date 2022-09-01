@@ -16,7 +16,6 @@ contract ShareAccumulator is AccessControl {
     uint internal gShares;
     uint internal gOffset;
     uint internal gOffTimestamp;
-    uint internal gAccTimestamp;
     uint internal gAccumulation;
 
     constructor() {
@@ -26,29 +25,18 @@ contract ShareAccumulator is AccessControl {
     function setShares(address account, uint newShares) external onlyRole(ACCUMULATOR_ROLE) {
         accumulations[account] = accumulation(account);
         offset[account] = globalOffset();
-
-        if (gShares == 0) {
-            gAccTimestamp = Time.now_u256();
-        }
-
-        if (newShares == 0 && gShares == shares[account]) {
-            gAccumulation = totalAccumulation();
-        }
-
+        gAccumulation = totalAccumulation();
         gOffset = offset[account];
         gOffTimestamp = Time.now_u256();
         gShares = gShares + newShares - shares[account];
         shares[account] = newShares;
     }
 
-    function getShares(address account) external view returns (uint) {
-        return shares[account];
-    }
-
     function removeAccumulation(address account) external onlyRole(ACCUMULATOR_ROLE) {
         gAccumulation = totalAccumulation() - accumulation(account);
-        gAccTimestamp = Time.now_u256();
         offset[account] = globalOffset();
+        gOffTimestamp = Time.now_u256();
+        gOffset = offset[account];
         accumulations[account] = 0;
     }
 
@@ -61,6 +49,10 @@ contract ShareAccumulator is AccessControl {
     }
 
     function totalAccumulation() public view returns (uint) {
-        return gShares == 0 ? gAccumulation : gAccumulation + (Time.since(gAccTimestamp) * R);
+        return gShares * (globalOffset() - gOffset) + gAccumulation;
+    }
+
+    function getShares(address account) external view returns (uint) {
+        return shares[account];
     }
 }
