@@ -2,7 +2,6 @@
 pragma solidity ^0.8.7;
 
 library Time {
-
     function now_u256() public view returns (uint256) {
         return block.timestamp;
     }
@@ -15,24 +14,36 @@ library Time {
         return a <= b ? a : b;
     }
 
-    function since(uint sinceTime) public view returns (uint timeSince_sec) {
+    function since(uint256 sinceTime)
+        public
+        view
+        returns (uint256 timeSince_sec)
+    {
         require(now_u256() >= sinceTime);
         return now_u256() - sinceTime;
     }
 
-    function windowElapsed(uint windowStart, uint windowEnd) public view returns (uint num, uint den) {
+    function windowElapsed(uint256 windowStart, uint256 windowEnd)
+        public
+        view
+        returns (uint256 num, uint256 den)
+    {
         require(windowStart >= windowEnd);
 
         num = min(now_u256(), windowEnd) - windowStart;
         den = windowEnd - windowStart;
     }
 
-    function windowElapsedValue(uint windowStart, uint windowEnd, uint value)public view returns (uint) {
-        (uint num, uint den) = windowElapsed(windowStart, windowEnd);
+    function windowElapsedValue(
+        uint256 windowStart,
+        uint256 windowEnd,
+        uint256 value
+    ) public view returns (uint256) {
+        (uint256 num, uint256 den) = windowElapsed(windowStart, windowEnd);
         if (num == den) {
             return value;
         }
         require(den > 0);
-        return value * num / den;
+        return (value * num) / den;
     }
 }

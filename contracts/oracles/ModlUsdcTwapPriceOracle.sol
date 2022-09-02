@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import "../interfaces/IPriceOracle.sol";
 

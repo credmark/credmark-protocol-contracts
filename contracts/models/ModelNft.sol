@@ -8,7 +8,13 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
-contract CredmarkModel is Initializable, ERC721Upgradeable, ERC721EnumerableUpgradeable, PausableUpgradeable, AccessControlUpgradeable {
+contract CredmarkModel is
+    Initializable,
+    ERC721Upgradeable,
+    ERC721EnumerableUpgradeable,
+    PausableUpgradeable,
+    AccessControlUpgradeable
+{
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -20,7 +26,7 @@ contract CredmarkModel is Initializable, ERC721Upgradeable, ERC721EnumerableUpgr
         _disableInitializers();
     }
 
-    function initialize() initializer public {
+    function initialize() public initializer {
         // TODO: Add checksums in here?
         // Also how do they collect? if ETH2 makes this cheap then whatevs on keeping this on an L2.
         __ERC721_init("Credmark Model", "MDL");
@@ -47,10 +53,14 @@ contract CredmarkModel is Initializable, ERC721Upgradeable, ERC721EnumerableUpgr
         _safeMint(to, tokenId);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId)
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    )
         internal
-        whenNotPaused
         override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
+        whenNotPaused
     {
         super._beforeTokenTransfer(from, to, tokenId);
     }
@@ -60,7 +70,11 @@ contract CredmarkModel is Initializable, ERC721Upgradeable, ERC721EnumerableUpgr
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721Upgradeable, ERC721EnumerableUpgradeable, AccessControlUpgradeable)
+        override(
+            ERC721Upgradeable,
+            ERC721EnumerableUpgradeable,
+            AccessControlUpgradeable
+        )
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

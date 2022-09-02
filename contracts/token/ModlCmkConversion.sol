@@ -3,34 +3,36 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./IModl.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../interfaces/IModl.sol";
 import "../libraries/Time.sol";
 
-contract ModlCmkConversion is  AccessControl, ERC20 {
-    bytes32 public constant CONVERSION_MANAGER = keccak256("CONVERSION_MANAGER");
+contract ModlCmkConversion is AccessControl, ERC20 {
+    using SafeERC20 for IERC20;
+    bytes32 public constant CONVERSION_MANAGER =
+        keccak256("CONVERSION_MANAGER");
 
     IERC20 public cmk;
     IModl public modl;
 
-    event Deposit(address account, uint cmkAmount, uint cmkModlAmount);
-    event Convert(address account, uint cmkModlAmount, uint modlAmount);
+    event Deposit(address account, uint256 cmkAmount, uint256 cmkModlAmount);
+    event Convert(address account, uint256 cmkModlAmount, uint256 modlAmount);
 
-    uint public depositStart;
-    uint public depositDuration;
-    uint public depositDiv;
+    uint256 public depositStart;
+    uint256 public depositDuration;
+    uint256 public depositDiv;
 
-    uint public conversionStart;
-    uint public conversionDuration;
-    uint public conversionMul;
+    uint256 public conversionStart;
+    uint256 public conversionDuration;
+    uint256 public conversionMul;
 
-    constructor (
-        uint depositDuration_,
-        uint depositDiv_,
-        uint conversionDuration_,
-        uint conversionMul_,
+    constructor(
+        uint256 depositDuration_,
+        uint256 depositDiv_,
+        uint256 conversionDuration_,
+        uint256 conversionMul_,
         IERC20 cmk_
     ) ERC20("CMK Convertible Modl", "cmkMODL") {
-
         depositDuration = depositDuration_;
         depositDiv = depositDiv_;
         conversionDuration = conversionDuration_;
@@ -55,35 +57,39 @@ contract ModlCmkConversion is  AccessControl, ERC20 {
         depositStart = Time.now_u256();
     }
 
-    function deposit(uint cmkAmount) external {
-        cmk.transferFrom(_msgSender(), address(this), cmkAmount);
+    function deposit(uint256 cmkAmount) external {
+        cmk.safeTransferFrom(_msgSender(), address(this), cmkAmount);
         _mint(_msgSender(), depositAmount(cmkAmount));
     }
 
-    function convert(uint cmkModlAmount) external {
+    function convert(uint256 cmkModlAmount) external {
         require(conversionStart > 0, "CMERR: Not Yet Started");
         _burn(_msgSender(), cmkModlAmount);
         modl.mint(_msgSender(), convertAmount(cmkModlAmount));
     }
 
-    function depositAmount(uint amount) public view returns (uint) {
-        if(depositStart == 0) {
+    function depositAmount(uint256 amount) public view returns (uint256) {
+        if (depositStart == 0) {
             return amount / depositDiv;
         }
-        uint end = depositStart + depositDuration;
+        uint256 end = depositStart + depositDuration;
         if (end < Time.now_u256()) {
             return 0;
         }
-        return amount * (end - Time.now_u256()) / depositDuration / depositDiv;
+        return
+            (amount * (end - Time.now_u256())) / depositDuration / depositDiv;
     }
 
-    function convertAmount(uint amount) public view returns (uint) {
-        if(conversionStart == 0) {
+    function convertAmount(uint256 amount) public view returns (uint256) {
+        if (conversionStart == 0) {
             return 0;
         }
         if (conversionStart + conversionDuration < Time.now_u256()) {
             return amount * conversionMul + amount;
         }
-        return Time.since(depositStart) * amount * conversionMul / depositDuration + amount;
+        return
+            (Time.since(depositStart) * amount * conversionMul) /
+            depositDuration +
+            amount;
     }
 }

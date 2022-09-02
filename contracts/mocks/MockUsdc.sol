@@ -8,7 +8,14 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
-contract MockUsdc is ERC20, ERC20Burnable, ERC20Snapshot, AccessControl, Pausable, ERC20Permit {
+contract MockUsdc is
+    ERC20,
+    ERC20Burnable,
+    ERC20Snapshot,
+    AccessControl,
+    Pausable,
+    ERC20Permit
+{
     bytes32 public constant SNAPSHOT_ROLE = keccak256("SNAPSHOT_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -35,15 +42,15 @@ contract MockUsdc is ERC20, ERC20Burnable, ERC20Snapshot, AccessControl, Pausabl
         _mint(to, amount);
     }
 
-    function decimals() public override pure returns(uint8) {
+    function decimals() public pure override returns (uint8) {
         return 6;
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount)
-        internal
-        whenNotPaused
-        override(ERC20, ERC20Snapshot)
-    {
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override(ERC20, ERC20Snapshot) whenNotPaused {
         super._beforeTokenTransfer(from, to, amount);
     }
 }

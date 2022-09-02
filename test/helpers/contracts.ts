@@ -1,5 +1,5 @@
 import { ethers, waffle } from 'hardhat';
-import { Modl, ModlAllowance, ModlVesting, ModlCmkConversion, MockCmk, MockUsdc, LiquidityManager, ISwapRouter, INonfungiblePositionManager, RewardsIssuer, Time, Subscription, ShareAccumulator, PriceAccumulator } from '../../typechain';
+import { Modl, ModlAllowance, ModlVesting, ModlCmkConversion, MockCmk, MockUsdc, LiquidityManager, ISwapRouter, INonfungiblePositionManager, RewardsIssuer, Time, ModlSubscription, BaseSubscription, ShareAccumulator, PriceAccumulator } from '../../typechain';
 import { BytesLike, Contract, ContractFactory } from 'ethers';
 import { setupUsers, CREDMARK_DEPLOYER, CREDMARK_MANAGER, CREDMARK_TREASURY_MULTISIG, USER_ALICE, USER_BRENT, USER_CAMMY, MOCK_GODMODE } from './users';
 
@@ -15,10 +15,10 @@ let swapRouter: ISwapRouter;
 let nonFungiblePositionManager: INonfungiblePositionManager;
 let rewardsIssuer: RewardsIssuer;
 
-let subscriptionBasic: Subscription;
-let subscriptionPro: Subscription;
-let subscriptionStable: Subscription;
-let subscriptionSuperPro: Subscription;
+let subscriptionBasic: ModlSubscription;
+let subscriptionPro: ModlSubscription;
+let subscriptionStable: BaseSubscription;
+let subscriptionSuperPro: ModlSubscription;
 
 let rewardsAccumulator: ShareAccumulator;
 let priceAccumulator: PriceAccumulator;
@@ -65,10 +65,11 @@ async function  deployContracts(){
     priceAccumulator = (await PriceAccumulatorFactory.deploy()) as PriceAccumulator;
     rewardsIssuer = (await RewardsIssuerFactory.deploy(MODL.address, MODLAllowance.address)) as RewardsIssuer;
 
-    subscriptionBasic = (await SubscriptionFactory.deploy("100", "0", "0", true, MODL.address, rewardsIssuer.address, priceAccumulator.address)) as Subscription;
-    subscriptionPro = (await SubscriptionFactory.deploy("200", "2592000", "500000000000000000000", true, MODL.address, rewardsIssuer.address, priceAccumulator.address)) as Subscription;
-    subscriptionStable = (await SubscriptionFactory.deploy("100", "7776000", "750000000000000000000", true, USDC.address, rewardsIssuer.address, priceAccumulator.address)) as Subscription;
-    subscriptionSuperPro = (await SubscriptionFactory.deploy("400", "7776000", "1250000000000000000000", true, MODL.address, rewardsIssuer.address, priceAccumulator.address)) as Subscription;
+    subscriptionStable = (await SubscriptionFactory.deploy("100", "7776000", "750000000000000000000", true, USDC.address, rewardsIssuer.address, priceAccumulator.address)) as BaseSubscription;
+
+    subscriptionBasic = (await SubscriptionFactory.deploy("100", "0", "0", true, MODL.address, rewardsIssuer.address, priceAccumulator.address)) as ModlSubscription;
+    subscriptionPro = (await SubscriptionFactory.deploy("200", "2592000", "500000000000000000000", true, MODL.address, rewardsIssuer.address, priceAccumulator.address)) as ModlSubscription;
+    subscriptionSuperPro = (await SubscriptionFactory.deploy("400", "7776000", "1250000000000000000000", true, MODL.address, rewardsIssuer.address, priceAccumulator.address)) as ModlSubscription;
 }
 
 async function setupExternalEnvironment(){

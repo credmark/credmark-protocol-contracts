@@ -11,9 +11,9 @@ import "../external/uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../external/uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "./IModl.sol";
+import "../interfaces/IModl.sol";
 
-contract LiquidityManager is AccessControl{
+contract LiquidityManager is AccessControl {
     bytes32 public constant CLEANER_ROLE = keccak256("CLEANER_ROLE");
     bytes32 public constant LIQUIDITY_ROLE = keccak256("LIQUIDITY_ROLE");
     INonfungiblePositionManager private constant NFPM =
@@ -36,10 +36,10 @@ contract LiquidityManager is AccessControl{
     int24 tickInit = -276300;
 
     bool private _mutexLocked;
-    bool public started = false;
+    uint256 public started = 0;
 
     uint160 sqrtPriceLimitSnap;
-    uint sqrtPriceLimitSnapTimestamp;
+    uint256 sqrtPriceLimitSnapTimestamp;
 
     event Started();
     event Cleanup(uint256 modlBurned);
@@ -58,9 +58,8 @@ contract LiquidityManager is AccessControl{
         _mutexLocked = false;
     }
 
-    function start() external lock() {
-
-        require(!started, "CMERR: Pool already Started");
+    function start() external lock {
+        require(started == 0, "CMERR: Pool already Started");
         require(
             MODL.balanceOf(address(this)) > 0,
             "CMERR: Can't start without Tokens"
@@ -72,24 +71,32 @@ contract LiquidityManager is AccessControl{
             POOL_FEE
         );
 
-        require(poolAddress != address(0), "CMERR: Couldn't create uniswap pool.");
+        require(
+            poolAddress != address(0),
+            "CMERR: Couldn't create uniswap pool."
+        );
 
         pool = IUniswapV3Pool(poolAddress);
 
-        if (pool.token0() == address(MODL)){
+        if (pool.token0() == address(MODL)) {
             tickLower = tickInit + 100;
         } else {
             tickInit = -tickInit;
             tickUpper = tickInit - 100;
         }
 
-        pool.initialize(
-            TickMath.getSqrtRatioAtTick(tickInit)
+        pool.initialize(TickMath.getSqrtRatioAtTick(tickInit));
+
+        require(
+            address(pool) != address(0),
+            "CMERR: Pool Not Created Successfully"
         );
 
-        require(address(pool) != address(0), "CMERR: Pool Not Created Successfully");
-
-        TransferHelper.safeApprove(address(MODL), address(NFPM), MODL.balanceOf(address(this)));
+        TransferHelper.safeApprove(
+            address(MODL),
+            address(NFPM),
+            MODL.balanceOf(address(this))
+        );
 
         (uint256 tokenId, uint128 liquidity, , ) = NFPM.mint(
             INonfungiblePositionManager.MintParams({
@@ -104,19 +111,23 @@ contract LiquidityManager is AccessControl{
                 amount1Min: 0,
                 recipient: address(this),
                 deadline: block.timestamp
-            }));
+            })
+        );
 
         liquidityTokenId = tokenId;
         currentLiquidity = liquidity;
-        started = true;
+        started = block.timestamp;
         emit Started();
     }
 
-    function clean(uint160 sqrtPriceLimitX96) external onlyRole(CLEANER_ROLE){
-        require(started, "CMERR: Pool not started");
+    function clean(uint160 sqrtPriceLimitX96) external onlyRole(CLEANER_ROLE) {
+        require(started != 0, "CMERR: Pool not started");
 
-        (uint160 sqrtPriceLimitX96Check,,,,,,) = pool.slot0();
-        require(sqrtPriceLimitX96Check == sqrtPriceLimitX96, "CMERR: sqrtPriceLimit doesn't match.");
+        (uint160 sqrtPriceLimitX96Check, , , , , , ) = pool.slot0();
+        require(
+            sqrtPriceLimitX96Check == sqrtPriceLimitX96,
+            "CMERR: sqrtPriceLimit doesn't match."
+        );
 
         (uint256 amount0, uint256 amount1) = NFPM.collect(
             INonfungiblePositionManager.CollectParams({
@@ -152,20 +163,15 @@ contract LiquidityManager is AccessControl{
         emit Cleanup(modlBalanceToBurn);
     }
 
-    function decreaseLiquidity() external onlyRole(LIQUIDITY_ROLE) {
-        uint128 liquidityToRemove = currentLiquidity / 10;
-
-        (uint256 amount0, uint256 amount1) = NFPM.decreaseLiquidity(
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: liquidityTokenId,
-                liquidity: liquidityToRemove,
-                amount0Min: 0,
-                amount1Min: 0,
-                deadline: block.timestamp + 120
-            })
+    function transferPosition(address to)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(started != 0, "CMERR: Not Started");
+        require(
+            block.timestamp > started + (365 * 2 * 86400),
+            "CMERR: Cannot transfer ownership for 2 years."
         );
-
-        currentLiquidity -= liquidityToRemove;
-        emit LiquidityDecreased(liquidityToRemove);
+        NFPM.transferFrom(address(this), to, liquidityTokenId);
     }
 }
