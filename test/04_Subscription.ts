@@ -110,24 +110,7 @@ describe('Subscription.sol', () => {
         await MODL.connect(USER_DAVID).approve(subscriptionSuperPro.address,   "10000000000000000000000");
 
     });
-    it('Subscription: Complex dilution', async () => {
-        
-        await expect(subscriptionBasic.connect(USER_ALICE).deposit(USER_ALICE.address, "10000000000000000000000")).not.reverted;
-        await expect(subscriptionSuperPro.connect(USER_BRENT).deposit(USER_BRENT.address, "10000000000000000000000")).not.reverted;
-        await advanceAYear();
-        await balances()
-        await expect(subscriptionBasic.connect(USER_CAMMY).deposit(USER_CAMMY.address, "10000000000000000000000")).not.reverted;
-        await subscriptionSuperPro.connect(USER_BRENT).exit(USER_BRENT.address);
-        await balances();
-        await advanceAYear();
-        await expect(subscriptionBasic.connect(USER_ALICE).claim(USER_ALICE.address)).not.reverted;
-        await expect(subscriptionBasic.connect(USER_CAMMY).claim(USER_CAMMY.address)).not.reverted;
 
-        await balances();
-
-        expect(abal).eq(175000)
-        expect(cbal).eq(125000)
-    });
     it('Subscription: Can Deposit', async () => {
         await expect((subscriptionBasic.connect(USER_ALICE).deposit(USER_ALICE.address, "100000000000000000000"))).not.reverted;
         await expect((subscriptionBasic.connect(HACKER_ZACH).deposit(HACKER_ZACH.address, "100000000000000000000"))).reverted;
@@ -256,7 +239,7 @@ describe('Subscription.sol', () => {
         expect(Number(abal)*2).eq(cbal);
 
         await (subscriptionPro.connect(USER_ALICE).exit(USER_ALICE.address));
-        
+        await expect(subscriptionPro.connect(USER_ALICE).claim(USER_ALICE.address)).not.reverted;
         await balances();
 
         await advanceAYear();
@@ -267,6 +250,23 @@ describe('Subscription.sol', () => {
         await balances();
     });
 
+    it('Subscription: Complex dilution', async () => {
+        
+        await expect(subscriptionBasic.connect(USER_ALICE).deposit(USER_ALICE.address, "10000000000000000000000")).not.reverted;
+        await expect(subscriptionSuperPro.connect(USER_BRENT).deposit(USER_BRENT.address, "10000000000000000000000")).not.reverted;
+        await advanceAYear();
+        await balances()
+        await expect(subscriptionBasic.connect(USER_CAMMY).deposit(USER_CAMMY.address, "10000000000000000000000")).not.reverted;
+        await subscriptionSuperPro.connect(USER_BRENT).exit(USER_BRENT.address);
+        await balances();
+        await advanceAYear();
+        await expect(subscriptionBasic.connect(USER_ALICE).claim(USER_ALICE.address)).not.reverted;
+        await expect(subscriptionBasic.connect(USER_CAMMY).claim(USER_CAMMY.address)).not.reverted;
 
+        await balances();
+
+        expect(abal).eq(175000)
+        expect(cbal).eq(125000)
+    });
 
 })

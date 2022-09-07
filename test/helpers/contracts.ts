@@ -60,10 +60,8 @@ let SNAPSHOT_ROLE =
   "0x5fdbd35e8da83ee755d5e62a539e5ed7f47126abede0b8b10f9ea43dc6eed07f";
 let DEFAULT_ADMIN_ROLE =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
-let PAUSER_ROLE =
-  "0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a";
-let MINTER_ROLE =
-  "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6";
+let PAUSER_ROLE = ethers.utils.id('PAUSER_ROLE');
+let MINTER_ROLE = ethers.utils.id('MINTER_ROLE');
 let VESTING_MANAGER =
   "0x842693f29231e6ec9f0d05508dbecff8eee59d0ddd46a9f7ffa553c25f01fed0";
 let ALLOWANCE_MANAGER =
@@ -171,7 +169,7 @@ async function deployContracts() {
     tokenAddress: USDC.address,
     rewardsIssuerAddress: rewardsIssuer.address
   })) as BaseSubscription;
-  
+
   cmkSubscription = (await BaseSubscriptionFactory.deploy({
     tokenAddress: CMK.address,
     rewardsIssuerAddress: cmkRewardsIssuer.address

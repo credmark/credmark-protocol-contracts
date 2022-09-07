@@ -9,6 +9,7 @@ import { CREDMARK_DEPLOYER, setupUsers } from './helpers/users';
 describe('Protocol Setup - Deployment', () => {
     
     before(async () => {
+        await setupUsers();
         await deployContracts();
     });
 
@@ -23,6 +24,7 @@ describe('Protocol Setup - Deployment', () => {
 
 describe('Protocol Setup - Pre Initialization', () => {
     before(async () => {
+        await setupUsers();
         await deployContracts();
     });
 
