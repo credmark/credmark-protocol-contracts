@@ -1,80 +1,81 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract CredmarkModel is
-    Initializable,
-    ERC721Upgradeable,
-    ERC721EnumerableUpgradeable,
-    PausableUpgradeable,
-    AccessControlUpgradeable
-{
-    using CountersUpgradeable for CountersUpgradeable.Counter;
+contract ModelNft is ERC721, Pausable, ERC721Enumerable, AccessControl {
+    using Counters for Counters.Counter;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    CountersUpgradeable.Counter private _tokenIdCounter;
+    Counters.Counter private _tokenIdCounter;
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
+    mapping(uint256 => uint256) public slugHashes;
+    mapping(uint256 => uint256) private slugTokens;
 
-    function initialize() public initializer {
-        // TODO: Add checksums in here?
-        // Also how do they collect? if ETH2 makes this cheap then whatevs on keeping this on an L2.
-        __ERC721_init("Credmark Model", "MDL");
-        __ERC721Enumerable_init();
-        __Pausable_init();
-        __AccessControl_init();
+    event NFTMinted(uint256 tokenId, uint256 slugHash);
 
+    constructor() ERC721("Credmark Model NFT", "cmModelNFT") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
     }
 
-    function pause() public onlyRole(PAUSER_ROLE) {
+    function _baseURI() internal pure override returns (string memory) {
+        return "https://api.credmark.com/v1/meta/model/";
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() public onlyRole(PAUSER_ROLE) {
+    function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
-    function safeMint(address to) public onlyRole(MINTER_ROLE) {
-        uint256 tokenId = _tokenIdCounter.current();
+    function safeMint(address to, string memory _slug)
+        public
+        onlyRole(MINTER_ROLE)
+    {
+        uint256 slugHash = getSlugHash(_slug);
+
+        require(slugTokens[slugHash] == 0x0, "Slug already Exists");
+
         _tokenIdCounter.increment();
+        uint256 tokenId = _tokenIdCounter.current();
+
+        slugHashes[tokenId] = slugHash;
+        slugTokens[slugHash] = tokenId;
+
         _safeMint(to, tokenId);
+
+        emit NFTMinted(tokenId, slugHash);
+    }
+
+    function getSlugHash(string memory _slug) public pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(_slug)));
+    }
+
+    function getHashById(uint256 _tokenId) public view returns (uint256) {
+        return slugHashes[_tokenId];
     }
 
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256 tokenId
-    )
-        internal
-        override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
-        whenNotPaused
-    {
+    ) internal override(ERC721, ERC721Enumerable) whenNotPaused {
         super._beforeTokenTransfer(from, to, tokenId);
     }
-
-    // The following functions are overrides required by Solidity.
 
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(
-            ERC721Upgradeable,
-            ERC721EnumerableUpgradeable,
-            AccessControlUpgradeable
-        )
+        override(ERC721, ERC721Enumerable, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

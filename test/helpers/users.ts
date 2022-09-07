@@ -2,6 +2,7 @@ import { ethers, waffle } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 let CREDMARK_DEPLOYER: SignerWithAddress;
+let CREDMARK_CONFIGURER: SignerWithAddress;
 let CREDMARK_MANAGER: SignerWithAddress;
 let CREDMARK_TREASURY_MULTISIG: SignerWithAddress;
 let CREDMARK_MODELER_TREASURY: SignerWithAddress;
@@ -25,6 +26,7 @@ async function setupUsers() {
         CREDMARK_TREASURY_MULTISIG,
         CREDMARK_MODELER_TREASURY,
         CREDMARK_MEMBER_TREASURY,
+        CREDMARK_CONFIGURER,
         USER_ALICE,
         USER_BRENT,
         USER_CAMMY,
@@ -43,6 +45,7 @@ export {
     CREDMARK_TREASURY_MULTISIG,
     CREDMARK_MODELER_TREASURY,
     CREDMARK_MEMBER_TREASURY,
+    CREDMARK_CONFIGURER,
     USER_ALICE,
     USER_BRENT,
     USER_CAMMY,

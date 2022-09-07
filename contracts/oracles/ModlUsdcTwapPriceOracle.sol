@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import "../interfaces/IPriceOracle.sol";
 
-contract ModlUsdcTwapPriceOracle is IPriceOracle, AccessControl {
+contract ModlUsdcTwapPriceOracle is IPriceOracle {
     uint256 internal MIN_SAMPLE_LENGTH_S = 3600;
     uint256 internal X96 = 0x1000000000000000000000000;
     uint256 internal X192 = 0x1000000000000000000000000000000000000000000000000;

@@ -1,77 +1,69 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "../configuration/Permissioned.sol";
 import "../libraries/Time.sol";
 
-contract ShareAccumulator is AccessControl {
-    bytes32 public constant ACCUMULATOR_ROLE = keccak256("ACCUMULATOR_ROLE");
-    uint256 internal R = 10**18;
+contract ShareAccumulator {
+    uint256 internal constant R = 10**18;
 
     mapping(address => uint256) internal share;
     mapping(address => uint256) internal offst;
     mapping(address => uint256) internal accum;
 
-    uint256 internal snapt;
-
     address internal constant GLOBALS = address(0x0);
 
-    constructor() {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(ACCUMULATOR_ROLE, msg.sender);
+    function _accumulate(uint256 newAccumulation) internal {
+        offst[GLOBALS] = _newOffset(newAccumulation);
+        accum[GLOBALS] += newAccumulation;
     }
 
-    function setShares(address account, uint256 newShares)
-        external
-        onlyRole(ACCUMULATOR_ROLE)
-    {
-        accum[account] = cAccum(account);
-        offst[account] = cOffst();
-        accum[GLOBALS] = cAccum(GLOBALS);
-        offst[GLOBALS] = offst[account];
-        snapt = Time.now_u256();
+    function _setShares(address account, uint256 newShares) internal {
+        accum[account] =
+            accum[account] +
+            (offst[GLOBALS] - offst[account]) *
+            share[account];
+        offst[account] = offst[GLOBALS];
         share[GLOBALS] = share[GLOBALS] + newShares - share[account];
         share[account] = newShares;
     }
 
-    function removeAccumulation(address account)
-        external
-        onlyRole(ACCUMULATOR_ROLE)
+    function _removeAccumulation(address account)
+        internal
+        returns (uint256 removedAccumulation)
     {
-        accum[GLOBALS] = cAccum(GLOBALS) - cAccum(account);
-        offst[account] = cOffst();
-        offst[GLOBALS] = offst[account];
-        snapt = Time.now_u256();
+        removedAccumulation = accumulation(account);
         accum[account] = 0;
+        accum[GLOBALS] -= removedAccumulation;
+        offst[account] = offst[GLOBALS];
     }
 
-    function setR(uint256 r) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        accum[GLOBALS] = cAccum(GLOBALS);
-        offst[GLOBALS] = cOffst();
-        snapt = Time.now_u256();
-        R = r;
+    function accumulation(address account) public view returns (uint256) {
+        return
+            ((offst[GLOBALS] - offst[account]) *
+                share[account] +
+                accum[account]) / R;
     }
 
-    function accumulation(address account) external view returns (uint256) {
-        return cAccum(account);
+    function accumulation(address account, uint256 unaccumulatedAmount)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            ((_newOffset(unaccumulatedAmount) - offst[account]) *
+                share[account] +
+                accum[account]) / R;
     }
 
-    function shares(address account) external view returns (uint256) {
-        return share[account];
-    }
-
-    function totalAccumulation() public view returns (uint256) {
-        return cAccum(GLOBALS);
-    }
-
-    function cOffst() internal view returns (uint256) {
+    function _newOffset(uint256 newAccumulation)
+        private
+        view
+        returns (uint256)
+    {
         return
             share[GLOBALS] == 0
-                ? share[GLOBALS]
-                : offst[GLOBALS] + ((Time.since(snapt) * R) / share[GLOBALS]);
-    }
-
-    function cAccum(address account) internal view returns (uint256) {
-        return share[account] * (cOffst() - offst[account]) + accum[account];
+                ? offst[GLOBALS]
+                : offst[GLOBALS] + (newAccumulation * R) / share[GLOBALS];
     }
 }

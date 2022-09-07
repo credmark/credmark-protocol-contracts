@@ -3,15 +3,15 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Snapshot.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "../interfaces/IModl.sol";
+import "../configuration/Permissioned.sol";
 
 contract Modl is
     ERC20,
     ERC20Snapshot,
-    AccessControl,
+    Permissioned,
     Pausable,
     ERC20Permit,
     IModl

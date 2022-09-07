@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "../configuration/CModlAllowance.sol";
 import "../interfaces/IModl.sol";
+import "../interfaces/IModlAllowance.sol";
 import "../libraries/Time.sol";
 
-contract ModlAllowance is AccessControl {
-    bytes32 public constant ALLOWANCE_MANAGER = keccak256("ALLOWANCE_MANAGER");
-
-    uint256 private _perAnnum = 86400 * 365;
+contract ModlAllowance is CModlAllowance, IModlAllowance {
+    uint256 private constant PER_ANNUM = 86400 * 365;
 
     struct Allowance {
         uint64 start;
@@ -19,32 +18,10 @@ contract ModlAllowance is AccessControl {
 
     uint256 public totalAllowancePerAnnum;
     uint256 public totalClaimed;
-    uint256 public ceiling = 2000000 * 10**18;
-
-    IModl private _modl;
-
-    event Claim(address account, uint256 amount);
-
-    constructor(IModl modl) {
-        _modl = modl;
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
-
-    function setCeiling(uint256 newCeiling)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(
-            newCeiling >= totalAllowancePerAnnum,
-            "CMERR: Ceiling cannot be less than current allocation."
-        );
-
-        ceiling = newCeiling;
-    }
 
     function update(address account, uint256 amountPerAnnum)
         external
-        onlyRole(ALLOWANCE_MANAGER)
+        configurer
     {
         require(
             account != address(0),
@@ -62,15 +39,13 @@ contract ModlAllowance is AccessControl {
         allowance[account].amountPerAnnum = amountPerAnnum;
 
         require(
-            totalAllowancePerAnnum <= ceiling,
+            totalAllowancePerAnnum <= config.ceiling,
             "CMERR: Cannot allocate more than ceiling."
         );
+        emit Update(account, amountPerAnnum);
     }
 
-    function emergencyStop(address account)
-        external
-        onlyRole(ALLOWANCE_MANAGER)
-    {
+    function emergencyStop(address account) external configurer configured {
         require(
             account != address(0),
             "CMERR: account must not be null address."
@@ -80,31 +55,42 @@ contract ModlAllowance is AccessControl {
             totalAllowancePerAnnum -
             allowance[account].amountPerAnnum;
         allowance[account].amountPerAnnum = 0;
+        emit Update(account, 0);
     }
 
-    function claim(address account) external {
-        require(
-            msg.sender == account || hasRole(ALLOWANCE_MANAGER, msg.sender),
-            "CMERR: Unauthorized account"
-        );
-
-        _claim(account);
+    function claim(address account)
+        external
+        override
+        managerOrMine(account)
+        configured
+        returns (uint256 amount)
+    {
+        return _claim(account);
     }
 
-    function _claim(address account) internal {
-        uint256 amount = claimableAmount(account);
+    function _claim(address account) internal returns (uint256 amount) {
+        amount = claimableAmount(account);
 
         allowance[account].start = Time.now_u64();
         totalClaimed += amount;
 
-        _modl.mint(account, amount);
+        IModl(config.modlAddress).mint(account, amount);
 
         emit Claim(account, amount);
     }
 
-    function claimableAmount(address account) public view returns (uint256) {
+    function claimableAmount(address account)
+        public
+        view
+        override
+        returns (uint256)
+    {
         return
             (Time.since(allowance[account].start) *
-                allowance[account].amountPerAnnum) / _perAnnum;
+                allowance[account].amountPerAnnum) / PER_ANNUM;
+    }
+
+    function modl() external view override returns (IModl modl) {
+        return IModl(config.modlAddress);
     }
 }

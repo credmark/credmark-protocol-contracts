@@ -4,64 +4,48 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "../configuration/Permissioned.sol";
 
-import "../interfaces/IModl.sol";
 import "../token/ModlAllowance.sol";
-import "../accumulators/ShareAccumulator.sol";
 import "../libraries/Time.sol";
+import "../accumulators/ShareAccumulator.sol";
 
-contract RewardsIssuer is AccessControl {
+contract RewardsIssuer is Permissioned, ShareAccumulator {
     using SafeERC20 for IERC20;
-    bytes32 public constant SUBSCRIPTION = keccak256("SUBSCRIPTION");
 
-    IModl public token;
+    IERC20 public token;
     ModlAllowance public modlAllowance;
-    ShareAccumulator public accumulator;
 
     constructor(IModl token_, ModlAllowance modlAllowance_) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        accumulator = new ShareAccumulator();
-        accumulator.grantRole(accumulator.ACCUMULATOR_ROLE(), address(this));
-
         modlAllowance = modlAllowance_;
         token = token_;
+        Time.now_u256();
     }
 
-    function setShares(uint256 newShares) external onlyRole(SUBSCRIPTION) {
-        accumulator.setShares(msg.sender, newShares);
+    function setShares(uint256 newShares) external trustedContract {
+        _setShares(msg.sender, newShares);
     }
 
-    function getShares(address pool) external view returns (uint256) {
-        return accumulator.shares(pool);
+    function getShares(address subscription) external view returns (uint256) {
+        return share[subscription];
     }
 
-    function issue() external onlyRole(SUBSCRIPTION) {
-        uint256 totalAcc = accumulator.totalAccumulation();
-        if (totalAcc == 0) {
-            // This means that rewards were already issued in this block.
-            // No Need to reissue.
-            return;
-        }
-        modlAllowance.claim(address(this));
-        IERC20(address(token)).safeTransfer(
-            msg.sender,
-            (accumulator.accumulation(msg.sender) *
-                token.balanceOf(address(this))) / totalAcc
-        );
-        accumulator.removeAccumulation(msg.sender);
+    function issue() external trustedContract returns (uint256 rewardsIssued) {
+        _accumulate(modlAllowance.claim(address(this)));
+        rewardsIssued = _removeAccumulation(msg.sender);
+        IERC20(address(token)).safeTransfer(msg.sender, rewardsIssued);
     }
 
-    function getUnissuedRewards(address poolAddress)
-        public
-        view
-        returns (uint256 amount)
+    function getUnissuedRewards(address subscription)
+        external
+        returns (uint256 unissuedRewards)
     {
-        uint256 totalAcc = accumulator.totalAccumulation();
-        amount = totalAcc == 0
-            ? 0
-            : (accumulator.accumulation(poolAddress) *
-                (token.balanceOf(address(this)) +
-                    modlAllowance.claimableAmount(address(this)))) / totalAcc;
+        return
+            accumulation(
+                subscription,
+                modlAllowance.claimableAmount(address(this))
+            );
     }
 }

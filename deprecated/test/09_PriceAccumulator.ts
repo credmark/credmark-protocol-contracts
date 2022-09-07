@@ -28,7 +28,6 @@ describe('PriceAccumulator.sol', () => {
 
     let displayProportions = async()=>{
 
-        let total = parseFloat((await priceAccumulator.getOffset(MODL.address)).toString());
     }
 
     let owed = (rate:number, monthly:number, offset:number, currentOffset:number) => {
@@ -40,35 +39,35 @@ describe('PriceAccumulator.sol', () => {
         let monthly = 30 * 24 * 60 * 60;
         let currentOffset = 0;
         let offset = 0;
-        await priceAccumulator.setPrice(MODL.address, "100000000");
+        await priceAccumulator.setPrice( "100000000");
         await advanceAMonth();
-        currentOffset = (await priceAccumulator.getOffset(MODL.address)).toNumber();
+        currentOffset = (await priceAccumulator.offset()).toNumber();
         
         console.log(owed(rate, monthly, offset, currentOffset ))
         offset = currentOffset
 
         await advanceAMonth();
-        currentOffset = (await priceAccumulator.getOffset(MODL.address)).toNumber();
+        currentOffset = (await priceAccumulator.offset()).toNumber();
         console.log(owed(rate, monthly, offset, currentOffset ))
 
         await advanceAMonth();
-        currentOffset = (await priceAccumulator.getOffset(MODL.address)).toNumber();
+        currentOffset = (await priceAccumulator.offset()).toNumber();
         console.log(owed(rate, monthly, offset, currentOffset ))
 
-        await priceAccumulator.setPrice(MODL.address, "200000000");
+        await priceAccumulator.setPrice("200000000");
 
         await advanceAMonth();
-        currentOffset = (await priceAccumulator.getOffset(MODL.address)).toNumber();
+        currentOffset = (await priceAccumulator.offset()).toNumber();
         console.log(owed(rate, monthly, offset, currentOffset ))
 
         await advanceAMonth();
-        currentOffset = (await priceAccumulator.getOffset(MODL.address)).toNumber();
+        currentOffset = (await priceAccumulator.offset()).toNumber();
         console.log(owed(rate, monthly, offset, currentOffset ))
         
-        await priceAccumulator.setPrice(MODL.address, "100000000");
+        await priceAccumulator.setPrice("100000000");
 
         await advanceAMonth();
-        currentOffset = (await priceAccumulator.getOffset(MODL.address)).toNumber();
+        currentOffset = (await priceAccumulator.offset()).toNumber();
         console.log(owed(rate, monthly, offset, currentOffset ))
 
 

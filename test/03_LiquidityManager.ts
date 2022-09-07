@@ -4,8 +4,8 @@ chai.use(waffle.solidity);
 
 let expect = chai.expect;
 
-import { setupProtocol, MODLConversion, MODL, DEFAULT_ADMIN_ROLE, CMK, USDC, liquidityManager, MINTER_ROLE, NULL_ADDRESS, swapRouter } from './helpers/contracts';
-import { setupUsers, CREDMARK_MANAGER, HACKER_ZACH, USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID, CREDMARK_TREASURY_MULTISIG, CREDMARK_DEPLOYER } from './helpers/users';
+import { setupProtocol, MODL, DEFAULT_ADMIN_ROLE, CMK, USDC, liquidityManager, MINTER_ROLE, NULL_ADDRESS, swapRouter } from './helpers/contracts';
+import { setupUsers, CREDMARK_MANAGER, HACKER_ZACH, USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID, CREDMARK_TREASURY_MULTISIG, CREDMARK_DEPLOYER, CREDMARK_CONFIGURER, MOCK_GODMODE } from './helpers/users';
 import { advanceAnHour, advanceADay, advanceAMonth, advanceAYear} from './helpers/time';
 import { IUniswapV3Pool } from '../typechain';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -41,6 +41,52 @@ let conversionMul: Number;
 let priceDiff = function(oldPrice: number, newPrice: number) {
   return (((newPrice-oldPrice) / oldPrice)* 100)
 }
+
+describe('LiquidityManager.sol : setup', () => {
+
+  beforeEach(async () => {
+      await setupUsers();
+  });
+
+  it('test ability to start with both random orientations', async () => {
+      let token0tested = false;
+      let token1tested = false;
+
+      while (!token0tested || !token1tested)
+      {
+          await setupProtocol();
+          await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, (5000000).BNTokStr());
+          await expect(liquidityManager.start()).not.reverted;
+
+          expect(await (await liquidityManager.started()).toString()).not.eq("0");
+          let uniswapV3Pool = (await ethers.getContractAt(
+              "contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool",
+              (await liquidityManager.pool()).toString()
+            )) as IUniswapV3Pool;
+          if (MODL.address == await uniswapV3Pool.token0()){
+              token0tested = true;
+          }
+          if (MODL.address == await uniswapV3Pool.token1()){
+              token1tested = true;
+          } 
+      }
+      expect(await (await liquidityManager.started()).toString()).not.eq("0");
+  });
+
+  it('Check Setup reversion states', async () => {
+      await setupProtocol();
+      await expect(liquidityManager.start()).reverted;
+      expect(await (await liquidityManager.started()).toString()).eq("0");
+      
+      await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, (5000000).BNTokStr());
+      await expect(liquidityManager.start()).not.reverted;
+      expect(await (await liquidityManager.started()).toString()).not.eq("0");
+      await expect(liquidityManager.start()).reverted;
+      await expect(liquidityManager.clean("0")).reverted;
+      await USDC.connect(CREDMARK_MANAGER).transfer(liquidityManager.address, "10000000000");
+  });
+});
+
 
 describe('LiquidityManager.sol operation', () => {
     let uniswapV3Pool: IUniswapV3Pool;
@@ -108,7 +154,6 @@ describe('LiquidityManager.sol operation', () => {
       }
     
     it('Can swap', async () => {
-      console.log(await price())
       await swapUSDC(USER_ALICE, '1');
       let p0 = await price();
         await swapUSDC(USER_ALICE, '999999000000');
@@ -124,4 +169,12 @@ describe('LiquidityManager.sol operation', () => {
         let slot0 = await uniswapV3Pool.slot0();
         await liquidityManager.connect(CREDMARK_MANAGER).clean(slot0.sqrtPriceX96.toString());
     });
+    it('Can pull liquidity after 2 years.', async () => {
+      await expect( liquidityManager.connect(CREDMARK_CONFIGURER).transferPosition(CREDMARK_CONFIGURER.address)).reverted;
+      await advanceAYear();
+      await advanceAYear();
+      await advanceAMonth();
+      await expect( liquidityManager.connect(CREDMARK_CONFIGURER).transferPosition(CREDMARK_CONFIGURER.address)).not.reverted;
+    });
 });
+

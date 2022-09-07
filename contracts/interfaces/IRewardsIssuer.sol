@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 interface IRewardsIssuer {
-    function issue() external;
+    function issue() external returns (uint256 newAccumulation);
 
     function token() external view returns (address);
 

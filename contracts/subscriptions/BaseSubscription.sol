@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "../configuration/CSubscription.sol";
 
 import "../accumulators/ShareAccumulator.sol";
 import "../accumulators/PriceAccumulator.sol";
@@ -16,24 +16,19 @@ import "../interfaces/ISubscription.sol";
 import "../interfaces/IRewardsIssuer.sol";
 import "../interfaces/IPriceOracle.sol";
 
-contract BaseSubscription is ISubscription, AccessControl {
+contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
     using SafeERC20 for IERC20;
 
     IERC20 token;
     IRewardsIssuer internal rewardsIssuer;
     IPriceOracle internal oracle;
 
-    ShareAccumulator internal depositAccumulator;
     PriceAccumulator internal priceAccumulator;
-    address internal revenueTreasury;
 
     mapping(address => uint256) internal feeOffset;
     mapping(address => uint256) internal lockupExpiration;
 
-    SubscriptionConfiguration public config;
     uint256 constant MONTH_SEC = (30 * 24 * 60 * 60);
-
-    uint256 totalDeposits;
 
     modifier isSubscribable() {
         require(
@@ -58,52 +53,67 @@ contract BaseSubscription is ISubscription, AccessControl {
         _;
     }
 
-    constructor(
-        IERC20 token_,
-        IRewardsIssuer rewardsIssuer_,
-        IPriceOracle oracle_,
-        address revenueTreasury_
-    ) {
-        token = token_;
-        oracle = oracle_;
-        rewardsIssuer = rewardsIssuer_;
-        revenueTreasury = revenueTreasury_;
-
-        depositAccumulator = new ShareAccumulator();
+    constructor(ConstructorParams memory params) {
         priceAccumulator = new PriceAccumulator();
+        token = IERC20(params.tokenAddress);
+        rewardsIssuer = IRewardsIssuer(params.rewardsIssuerAddress);
     }
 
     function deposit(address account, uint256 amount)
         external
         override
         isSubscribable
+        configured
     {
-        _deposit(account, amount);
+        uint256 depositAmount = _deposit(account, amount);
+
+        token.safeTransferFrom(msg.sender, address(this), depositAmount);
+
+        require(depositAmount > 0, "CMERR: No deposit amount");
     }
 
     function exit(address account)
         external
         override
         lockup(account)
-        subscriptionOwner(account)
+        managerOrMine(account)
+        configured
     {
-        _exit(account);
+        (uint256 accountAmount, uint256 treasuryAmount) = _exit(account);
+
+        if (accountAmount > 0) {
+            token.safeTransfer(account, accountAmount);
+        }
+
+        if (treasuryAmount > 0) {
+            token.safeTransfer(config.treasury, treasuryAmount);
+        }
+
+        require(accountAmount > 0 || treasuryAmount > 0, "CMERR: no deposit.");
+        require(config.treasury != address(0), "CMERR: no treasury");
     }
 
     function claim(address account)
         external
         override
-        subscriptionOwner(account)
+        managerOrMine(account)
+        configured
     {
-        _claim(account);
+        uint256 claimAmount = _claim(account);
+        token.safeTransfer(account, claimAmount);
+
+        require(claimAmount > 0, "CMERR: No Rewards.");
     }
 
-    function liquidate(address account) external override {
-        _liquidate(account);
+    function liquidate(address account) external override configured {
+        uint256 liquidationAmount = _liquidate(account);
+        token.safeTransfer(config.treasury, liquidationAmount);
+
+        require(liquidationAmount > 0, "CMERR: Nothing to liquidate.");
     }
 
     function deposits(address account) public view override returns (uint256) {
-        return depositAccumulator.shares(account);
+        return share[account];
     }
 
     function fees(address account) public view override returns (uint256) {
@@ -114,8 +124,10 @@ contract BaseSubscription is ISubscription, AccessControl {
 
     function rewards(address account) public view override returns (uint256) {
         return
-            (totalRewards() * depositAccumulator.accumulation(account)) /
-            depositAccumulator.totalAccumulation();
+            accumulation(
+                account,
+                rewardsIssuer.getUnissuedRewards(address(this))
+            );
     }
 
     function solvent(address account)
@@ -128,14 +140,25 @@ contract BaseSubscription is ISubscription, AccessControl {
         return deposits(account) >= fees(account);
     }
 
-    function totalRewards() internal view virtual returns (uint256) {
+    function totalRewards() public view virtual returns (uint256) {
         return
-            rewardsIssuer.getUnissuedRewards(address(this)) +
-            IERC20(rewardsIssuer.token()).balanceOf(address(this));
+            accumulation(
+                GLOBALS,
+                rewardsIssuer.getUnissuedRewards(address(this))
+            );
     }
 
-    function _feePrice() internal view returns (uint256 price, uint8 decimals) {
-        (price, decimals) = _tokenPrice();
+    function totalDeposits() public view returns (uint256) {
+        return share[GLOBALS];
+    }
+
+    function clampedPrice()
+        public
+        view
+        returns (uint256 price, uint8 decimals)
+    {
+        price = IPriceOracle(config.oracleAddress).price();
+        decimals = IPriceOracle(config.oracleAddress).decimals();
         if (price < config.floorPrice) {
             price = config.floorPrice;
         }
@@ -144,81 +167,60 @@ contract BaseSubscription is ISubscription, AccessControl {
         }
     }
 
-    function _tokenPrice()
+    function _deposit(address account, uint256 amount)
         internal
-        view
-        returns (uint256 price, uint8 decimals)
+        returns (uint256 depositTransferAmount)
     {
-        return (oracle.price(), oracle.decimals());
-    }
+        _accumulate(rewardsIssuer.issue());
+        _setShares(account, share[account] + amount);
 
-    function _deposit(address account, uint256 amount) internal {
-        require(amount > 0, "CMERR: deposit amount 0");
+        snapshot();
 
-        token.safeTransferFrom(msg.sender, address(this), amount);
-
-        depositAccumulator.setShares(
-            account,
-            depositAccumulator.shares(account) + amount
-        );
-        totalDeposits += amount;
         if (feeOffset[account] == 0) {
             feeOffset[account] = priceAccumulator.offset();
             lockupExpiration[account] = Time.now_u256() + config.lockup;
         }
-        snapshot();
+        return amount;
     }
 
-    function _exit(address account) internal {
-        require(depositAccumulator.shares(account) > 0, "CMERR: no deposit");
-        require(
-            revenueTreasury != address(0),
-            "CMERR: No revenue treasury set."
-        );
+    function _exit(address account)
+        internal
+        returns (uint256 accountAmount, uint256 treasuryAmount)
+    {
+        treasuryAmount = min(fees(account), deposits(account));
+        accountAmount = deposits(account) - treasuryAmount;
 
-        if (solvent(account)) {
-            token.safeTransfer(revenueTreasury, fees(account));
-            token.safeTransfer(account, deposits(account) - fees(account));
-        } else {
-            token.safeTransfer(revenueTreasury, deposits(account));
-        }
-
-        totalDeposits -= deposits(account);
-
-        depositAccumulator.setShares(account, 0);
-
+        _accumulate(rewardsIssuer.issue());
+        _setShares(account, 0);
         feeOffset[account] = 0;
 
         snapshot();
     }
 
-    function _claim(address account) internal {
-        rewardsIssuer.issue();
-
-        bool success = IERC20(rewardsIssuer.token()).transfer(
-            account,
-            rewards(account)
-        );
-        require(success, "CMERR: Transfer failed");
-
-        depositAccumulator.removeAccumulation(account);
+    function _claim(address account) internal returns (uint256 claimAmount) {
+        _accumulate(rewardsIssuer.issue());
+        return _removeAccumulation(account);
     }
 
-    function _liquidate(address account) internal virtual {
+    function _liquidate(address account)
+        internal
+        virtual
+        returns (uint256 treasuryAmount)
+    {
         require(
             !solvent(account),
             "CMERR: Cannot liquidate solvent subscriptions."
         );
-        _exit(account);
+        (, treasuryAmount) = _exit(account);
     }
 
     function snapshot() public {
-        (uint256 price, uint8 decimals) = _feePrice();
+        (uint256 price, uint8 decimals) = clampedPrice();
 
-        uint256 shares = (totalDeposits * price * config.multiplier) /
+        uint256 shares = (share[GLOBALS] * price * config.multiplier) /
             (10**decimals);
 
-        if (shares != rewardsIssuer.getShares(address(this))) {
+        if (rewardsIssuer.getShares(address(this)) != shares) {
             rewardsIssuer.setShares(shares);
         }
 
@@ -227,11 +229,7 @@ contract BaseSubscription is ISubscription, AccessControl {
         }
     }
 
-    function configure(SubscriptionConfiguration memory config_)
-        public
-        override
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        config = config_;
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a <= b ? a : b;
     }
 }

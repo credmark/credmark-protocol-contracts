@@ -3,7 +3,7 @@ pragma solidity >=0.8.7;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "../configuration/Permissioned.sol";
 
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
@@ -13,9 +13,7 @@ import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../external/uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "../interfaces/IModl.sol";
 
-contract LiquidityManager is AccessControl {
-    bytes32 public constant CLEANER_ROLE = keccak256("CLEANER_ROLE");
-    bytes32 public constant LIQUIDITY_ROLE = keccak256("LIQUIDITY_ROLE");
+contract LiquidityManager is Permissioned {
     INonfungiblePositionManager private constant NFPM =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     ISwapRouter private constant SWAP =
@@ -46,7 +44,6 @@ contract LiquidityManager is AccessControl {
     event LiquidityDecreased(uint128 liquidityRemoved);
 
     constructor(address modl_, address usdc_) {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         USDC = IERC20(usdc_);
         MODL = IModl(modl_);
     }
@@ -120,7 +117,7 @@ contract LiquidityManager is AccessControl {
         emit Started();
     }
 
-    function clean(uint160 sqrtPriceLimitX96) external onlyRole(CLEANER_ROLE) {
+    function clean(uint160 sqrtPriceLimitX96) external manager {
         require(started != 0, "CMERR: Pool not started");
 
         (uint160 sqrtPriceLimitX96Check, , , , , , ) = pool.slot0();
@@ -163,10 +160,7 @@ contract LiquidityManager is AccessControl {
         emit Cleanup(modlBalanceToBurn);
     }
 
-    function transferPosition(address to)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function transferPosition(address to) external configurer {
         require(started != 0, "CMERR: Not Started");
         require(
             block.timestamp > started + (365 * 2 * 86400),

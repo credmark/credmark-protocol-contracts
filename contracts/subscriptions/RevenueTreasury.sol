@@ -2,12 +2,12 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../configuration/Permissioned.sol";
 
 import "../interfaces/IModl.sol";
 
-contract RevenueTreasury is AccessControl {
+contract RevenueTreasury is Permissioned {
     using SafeERC20 for IERC20;
     uint256 public percentToBurned;
     address public recipient;
@@ -26,7 +26,7 @@ contract RevenueTreasury is AccessControl {
         uint256 pctToBurn_,
         address recipient_,
         IModl token_
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) public configurer {
         percentToBurned = pctToBurn_;
         recipient = recipient_;
         token = token_;
