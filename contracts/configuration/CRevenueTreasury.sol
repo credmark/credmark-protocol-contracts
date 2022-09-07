@@ -14,10 +14,10 @@ contract CRevenueTreasury is Configurable {
 
     Configuration config;
 
-    function configure(Configuration memory newConfig) external configurer {
+    function configure(Configuration memory newConfig) external {
         require(newConfig.modlPercentToDao <= 100, "CONFIG");
         require(newConfig.daoAddress != address(0x0), "CONFIG");
         config = newConfig;
-        _configured = true;
+        _postConfiguration();
     }
 }

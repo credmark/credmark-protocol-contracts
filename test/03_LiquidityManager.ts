@@ -55,18 +55,18 @@ describe('LiquidityManager.sol : setup', () => {
       while (!token0tested || !token1tested)
       {
           await setupProtocol();
-          await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, (5000000).BNTokStr());
-          await expect(liquidityManager.start()).not.reverted;
+          await liquidityManager.mint();
+          await liquidityManager.connect(CREDMARK_MANAGER).start();
 
           expect(await (await liquidityManager.started()).toString()).not.eq("0");
           let uniswapV3Pool = (await ethers.getContractAt(
               "contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool",
               (await liquidityManager.pool()).toString()
             )) as IUniswapV3Pool;
-          if (MODL.address == await uniswapV3Pool.token0()){
+          if (MODL.address == await uniswapV3Pool.token0()) {
               token0tested = true;
           }
-          if (MODL.address == await uniswapV3Pool.token1()){
+          if (MODL.address == await uniswapV3Pool.token1()) {
               token1tested = true;
           } 
       }
@@ -75,11 +75,10 @@ describe('LiquidityManager.sol : setup', () => {
 
   it('Check Setup reversion states', async () => {
       await setupProtocol();
-      await expect(liquidityManager.start()).reverted;
+      await liquidityManager.mint();
+
       expect(await (await liquidityManager.started()).toString()).eq("0");
-      
-      await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, (5000000).BNTokStr());
-      await expect(liquidityManager.start()).not.reverted;
+      await expect(liquidityManager.connect(CREDMARK_MANAGER).start()).not.reverted;
       expect(await (await liquidityManager.started()).toString()).not.eq("0");
       await expect(liquidityManager.start()).reverted;
       await expect(liquidityManager.clean("0")).reverted;
@@ -99,11 +98,10 @@ describe('LiquidityManager.sol operation', () => {
         await USDC.connect(CREDMARK_MANAGER).transfer(USER_BRENT.address, "1000000000000");
         await USDC.connect(CREDMARK_MANAGER).transfer(USER_CAMMY.address, "1000000000000");
 
-        await MODL.connect(CREDMARK_DEPLOYER).grantRole(MINTER_ROLE, CREDMARK_TREASURY_MULTISIG.address);
-        advanceAnHour()
-        await MODL.connect(CREDMARK_TREASURY_MULTISIG).mint(liquidityManager.address, (6700000).BNTokStr());
+        advanceAnHour();
 
-        await liquidityManager.start();
+        await liquidityManager.mint();
+        await liquidityManager.connect(CREDMARK_MANAGER).start();
 
         uniswapV3Pool = (await ethers.getContractAt(
             "contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool",

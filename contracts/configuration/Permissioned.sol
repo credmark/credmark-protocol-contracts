@@ -35,7 +35,5 @@ contract Permissioned is AccessControl {
 
     constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(CONFIGURER_ROLE, msg.sender);
-        _grantRole(MANAGER_ROLE, msg.sender);
     }
 }

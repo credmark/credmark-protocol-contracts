@@ -14,8 +14,8 @@ contract CSubscriptionRewardsIssuer is Configurable {
 
     Configuration config;
 
-    function configure(Configuration memory newConfig) external configurer {
+    function configure(Configuration memory newConfig) external {
         config = newConfig;
-        _configured = true;
+        _postConfiguration();
     }
 }

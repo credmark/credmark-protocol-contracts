@@ -3,7 +3,7 @@ pragma solidity >=0.8.7;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "../configuration/Permissioned.sol";
+import "../configuration/CLiquidityManager.sol";
 
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
@@ -11,9 +11,9 @@ import "../external/uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../external/uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "../interfaces/IModl.sol";
+import "../token/Modl.sol";
 
-contract LiquidityManager is Permissioned {
+contract LiquidityManager is CLiquidityManager {
     INonfungiblePositionManager private constant NFPM =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     ISwapRouter private constant SWAP =
@@ -22,7 +22,8 @@ contract LiquidityManager is Permissioned {
         IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
 
     IERC20 private USDC;
-    IModl private MODL;
+    Modl private MODL;
+    uint256 launchLiquidity;
 
     IUniswapV3Pool public pool;
     uint256 public liquidityTokenId;
@@ -41,11 +42,11 @@ contract LiquidityManager is Permissioned {
 
     event Started();
     event Cleanup(uint256 modlBurned);
-    event LiquidityDecreased(uint128 liquidityRemoved);
 
-    constructor(address modl_, address usdc_) {
-        USDC = IERC20(usdc_);
-        MODL = IModl(modl_);
+    constructor(ConstructorParams memory params) {
+        USDC = IERC20(params.usdcAddress);
+        MODL = Modl(params.modlAddress);
+        launchLiquidity = params.launchLiquidity;
     }
 
     modifier lock() {
@@ -55,7 +56,17 @@ contract LiquidityManager is Permissioned {
         _mutexLocked = false;
     }
 
-    function start() external lock {
+    function mint() external lock {
+        require(started == 0, "CMERR: Pool already Started");
+        require(launchLiquidity > 0, "CMERR: No liquidity");
+        require(MODL.balanceOf(address(this)) == 0, "CMERR: Already minted");
+        MODL.mint(address(this), launchLiquidity);
+        require(MODL.balanceOf(address(this)) == launchLiquidity);
+        MODL.renounceRole(MODL.MINTER_ROLE(), address(this));
+        require(!MODL.hasRole(MODL.MINTER_ROLE(), address(this)));
+    }
+
+    function start() external lock manager {
         require(started == 0, "CMERR: Pool already Started");
         require(
             MODL.balanceOf(address(this)) > 0,

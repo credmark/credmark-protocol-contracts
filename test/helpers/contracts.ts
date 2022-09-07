@@ -121,10 +121,11 @@ async function deployContracts() {
   MODLAllowance = (await ModlAllowanceFactory.deploy({modlAddress: MODL.address})) as ModlAllowance;
 
 
-  liquidityManager = (await LiquidityManagerFactory.deploy(
-    MODL.address,
-    USDC.address
-  )) as LiquidityManager;
+  liquidityManager = (await LiquidityManagerFactory.deploy({
+    modlAddress:MODL.address,
+    usdcAddress:USDC.address,
+    launchLiquidity: "7500000000000000000000000"
+  })) as LiquidityManager;
 
 
   rewardsIssuer = (await SubscriptionRewardsIssuerFactory.deploy({
@@ -207,12 +208,14 @@ async function grantPermissions(){
             CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
     await cmkSubscriptionRewardsIssuer.grantRole(
         CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-        await revenueTreasury.grantRole(
-            CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-
+    await revenueTreasury.grantRole(
+        CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
+    await liquidityManager.grantRole(
+        MANAGER_ROLE, CREDMARK_MANAGER.address);
     await MODL.grantRole(MINTER_ROLE, MODLAllowance.address);
     await MODL.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
     await MODL.grantRole(MINTER_ROLE, rewardsIssuer.address);
+    await MODL.grantRole(MINTER_ROLE, liquidityManager.address);
 
     await liquidityManager.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
 
