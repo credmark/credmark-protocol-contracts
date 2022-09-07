@@ -18,6 +18,11 @@ contract ModlAllowance is CModlAllowance, IModlAllowance {
 
     uint256 public totalAllowancePerAnnum;
     uint256 public totalClaimed;
+    IModl public override modl;
+
+    constructor(ConstructorParams memory params) {
+        modl = IModl(params.modlAddress);
+    }
 
     function update(address account, uint256 amountPerAnnum)
         external
@@ -61,7 +66,7 @@ contract ModlAllowance is CModlAllowance, IModlAllowance {
     function claim(address account)
         external
         override
-        managerOrMine(account)
+        managerOr(account)
         configured
         returns (uint256 amount)
     {
@@ -74,7 +79,7 @@ contract ModlAllowance is CModlAllowance, IModlAllowance {
         allowance[account].start = Time.now_u64();
         totalClaimed += amount;
 
-        IModl(config.modlAddress).mint(account, amount);
+        modl.mint(account, amount);
 
         emit Claim(account, amount);
     }
@@ -88,9 +93,5 @@ contract ModlAllowance is CModlAllowance, IModlAllowance {
         return
             (Time.since(allowance[account].start) *
                 allowance[account].amountPerAnnum) / PER_ANNUM;
-    }
-
-    function modl() external view override returns (IModl modl) {
-        return IModl(config.modlAddress);
     }
 }

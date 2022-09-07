@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../configuration/Permissioned.sol";
-import "../libraries/Time.sol";
-
-contract ShareAccumulator {
+abstract contract ShareAccumulator {
     uint256 internal constant R = 10**18;
+    address internal constant GLOBALS = address(0x0);
 
     mapping(address => uint256) internal share;
     mapping(address => uint256) internal offst;
     mapping(address => uint256) internal accum;
-
-    address internal constant GLOBALS = address(0x0);
 
     function _accumulate(uint256 newAccumulation) internal {
         offst[GLOBALS] = _newOffset(newAccumulation);
@@ -36,7 +32,7 @@ contract ShareAccumulator {
         offst[account] = offst[GLOBALS];
     }
 
-    function accumulation(address account) public view returns (uint256) {
+    function accumulation(address account) internal view returns (uint256) {
         return
             ((offst[GLOBALS] - offst[account]) *
                 share[account] +
@@ -44,7 +40,7 @@ contract ShareAccumulator {
     }
 
     function accumulation(address account, uint256 unaccumulatedAmount)
-        public
+        internal
         view
         returns (uint256)
     {

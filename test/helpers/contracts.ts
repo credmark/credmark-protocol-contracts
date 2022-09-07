@@ -7,13 +7,10 @@ import {
   LiquidityManager,
   ISwapRouter,
   INonfungiblePositionManager,
-  RewardsIssuer,
+  SubscriptionRewardsIssuer,
   Time,
   ModlSubscription,
-  BaseSubscription,
-  ShareAccumulator,
-  PriceAccumulator,
-  IPriceOracle,
+  GenericSubscription,
   ModelNftRewards,
   ModelNft,
   MockPriceOracle,
@@ -39,8 +36,8 @@ let USDC: MockCmk;
 let liquidityManager: LiquidityManager;
 let swapRouter: ISwapRouter;
 let nonFungiblePositionManager: INonfungiblePositionManager;
-let rewardsIssuer: RewardsIssuer;
-let cmkRewardsIssuer: RewardsIssuer;
+let rewardsIssuer: SubscriptionRewardsIssuer;
+let cmkSubscriptionRewardsIssuer: SubscriptionRewardsIssuer;
 let mockUsdcPriceOracle: MockPriceOracle;
 let mockModlPriceOracle: MockPriceOracle;
 let mockCmkPriceOracle: MockPriceOracle;
@@ -50,9 +47,9 @@ let revenueTreasury: RevenueTreasury;
 
 let subscriptionBasic: ModlSubscription;
 let subscriptionPro: ModlSubscription;
-let subscriptionStable: BaseSubscription;
+let subscriptionStable: GenericSubscription;
 let subscriptionSuperPro: ModlSubscription;
-let cmkSubscription: BaseSubscription;
+let cmkSubscription: GenericSubscription;
 
 let lTime: Time;
 
@@ -77,7 +74,6 @@ let TRUSTED_CONTRACT_ROLE = "0xcc22fb83d486b5e47dedd221cc62cda2523064db06726dfe5
 let MANAGER_ROLE = "0xaf290d8680820aad922855f39b306097b20e28774d6c1ad35a20325630c3a02c";
 let CONFIGURER_ROLE = "0x527e2c92bb6983874717bce74818faf5a9be45b6e85909ee478af653c6d98755";
 
-
 let NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 async function deployContracts() {
@@ -89,8 +85,8 @@ async function deployContracts() {
     "ModlSubscription",
     { libraries: { Time: lTime.address } }
   );
-  let BaseSubscriptionFactory = await ethers.getContractFactory(
-    "BaseSubscription",
+  let GenericSubscriptionFactory = await ethers.getContractFactory(
+    "GenericSubscription",
     { libraries: { Time: lTime.address } }
   );
   let ModlAllowanceFactory = await ethers.getContractFactory("ModlAllowance", {
@@ -108,7 +104,7 @@ async function deployContracts() {
     "MockUsdc",
     CREDMARK_DEPLOYER
   );
-  let RewardsIssuerFactory = await ethers.getContractFactory("RewardsIssuer", {
+  let SubscriptionRewardsIssuerFactory = await ethers.getContractFactory("SubscriptionRewardsIssuer", {
     libraries: { Time: lTime.address },
   });
   let MockPriceOracleFactory = await ethers.getContractFactory(
@@ -122,7 +118,7 @@ async function deployContracts() {
   USDC = (await MockUsdcFactory.deploy()) as MockUsdc;
   MODL = (await ModlFactory.deploy()) as Modl;
 
-  MODLAllowance = (await ModlAllowanceFactory.deploy()) as ModlAllowance;
+  MODLAllowance = (await ModlAllowanceFactory.deploy({modlAddress: MODL.address})) as ModlAllowance;
 
 
   liquidityManager = (await LiquidityManagerFactory.deploy(
@@ -131,20 +127,20 @@ async function deployContracts() {
   )) as LiquidityManager;
 
 
-  rewardsIssuer = (await RewardsIssuerFactory.deploy(
-    MODL.address,
-    MODLAllowance.address
-  )) as RewardsIssuer;
+  rewardsIssuer = (await SubscriptionRewardsIssuerFactory.deploy({
+    modlAddress: MODL.address,
+    modlAllowance: MODLAllowance.address
+  })) as SubscriptionRewardsIssuer;
 
-  cmkRewardsIssuer = (await RewardsIssuerFactory.deploy(
-    MODL.address,
-    MODLAllowance.address
-  )) as RewardsIssuer;
+  cmkSubscriptionRewardsIssuer = (await SubscriptionRewardsIssuerFactory.deploy({
+    modlAddress: MODL.address,
+    modlAllowance: MODLAllowance.address
+  })) as SubscriptionRewardsIssuer;
 
-  revenueTreasury = (await RevenueTreasuryFactory.deploy(100,CREDMARK_TREASURY_MULTISIG.address,MODL.address));
+  revenueTreasury = (await RevenueTreasuryFactory.deploy({modlAddress:MODL.address}));
 
   modelNft = (await ModelNftFactory.deploy()) as ModelNft;
-  modelNftRewards = (await ModelNftRewardsFactory.deploy(MODLAllowance.address,modelNft.address));
+  modelNftRewards = (await ModelNftRewardsFactory.deploy({modlAddress: MODL.address, modlAllowanceAddress: MODLAllowance.address, modelNftAddress: modelNft.address}));
   mockUsdcPriceOracle = await MockPriceOracleFactory.deploy();
   mockModlPriceOracle = await MockPriceOracleFactory.deploy();
   mockCmkPriceOracle = await MockPriceOracleFactory.deploy();
@@ -165,15 +161,15 @@ async function deployContracts() {
     rewardsIssuerAddress: rewardsIssuer.address
   })) as ModlSubscription;
 
-  subscriptionStable = (await BaseSubscriptionFactory.deploy({
+  subscriptionStable = (await GenericSubscriptionFactory.deploy({
     tokenAddress: USDC.address,
     rewardsIssuerAddress: rewardsIssuer.address
-  })) as BaseSubscription;
+  })) as GenericSubscription;
 
-  cmkSubscription = (await BaseSubscriptionFactory.deploy({
+  cmkSubscription = (await GenericSubscriptionFactory.deploy({
     tokenAddress: CMK.address,
-    rewardsIssuerAddress: cmkRewardsIssuer.address
-  })) as BaseSubscription;
+    rewardsIssuerAddress: cmkSubscriptionRewardsIssuer.address
+  })) as GenericSubscription;
 }
 
 async function setupExternalEnvironment() {
@@ -207,9 +203,16 @@ async function grantPermissions(){
         CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
     await cmkSubscription.grantRole(
         CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
+    await rewardsIssuer.grantRole(
+            CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
+    await cmkSubscriptionRewardsIssuer.grantRole(
+        CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
+        await revenueTreasury.grantRole(
+            CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
 
     await MODL.grantRole(MINTER_ROLE, MODLAllowance.address);
     await MODL.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
+    await MODL.grantRole(MINTER_ROLE, rewardsIssuer.address);
 
     await liquidityManager.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
 
@@ -217,7 +220,7 @@ async function grantPermissions(){
     await rewardsIssuer.grantRole(TRUSTED_CONTRACT_ROLE, subscriptionPro.address);
     await rewardsIssuer.grantRole(TRUSTED_CONTRACT_ROLE, subscriptionStable.address);
     await rewardsIssuer.grantRole(TRUSTED_CONTRACT_ROLE, subscriptionSuperPro.address);
-    await cmkRewardsIssuer.grantRole(TRUSTED_CONTRACT_ROLE, cmkSubscription.address);
+    await cmkSubscriptionRewardsIssuer.grantRole(TRUSTED_CONTRACT_ROLE, cmkSubscription.address);
 
     await CMK.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
     await CMK.grantRole(DEFAULT_ADMIN_ROLE, MOCK_GODMODE.address);
@@ -228,19 +231,17 @@ async function grantPermissions(){
     await MODL.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
     await MODL.grantRole(DEFAULT_ADMIN_ROLE, MOCK_GODMODE.address);
 
+    await modelNftRewards.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
+
 }
 
 async function configure() {
-    await MODLAllowance.connect(CREDMARK_CONFIGURER).configure({modlAddress: MODL.address, ceiling:"1000000000000000000000000"});
+    await MODLAllowance.connect(CREDMARK_CONFIGURER).configure({ceiling:"1000000000000000000000000"});
     // ALLOWANCES
-  await MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-    rewardsIssuer.address,
-    "250000000000000000000000"
-  );
-  await MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-    cmkRewardsIssuer.address,
-    "250000000000000000000000"
-  );
+    await rewardsIssuer.connect(CREDMARK_CONFIGURER).configure({amountPerAnnum: "250000000000000000000000"});
+    await cmkSubscriptionRewardsIssuer.connect(CREDMARK_CONFIGURER).configure({amountPerAnnum: "250000000000000000000000"});
+    await revenueTreasury.connect(CREDMARK_CONFIGURER).configure({daoAddress: CREDMARK_TREASURY_MULTISIG.address, modlPercentToDao:"0"});
+
   await MODLAllowance.connect(CREDMARK_CONFIGURER).update(
     modelNftRewards.address,
     "250000000000000000000000"
@@ -335,7 +336,7 @@ async function printProtocol() {
 
     console.log(MODLAllowance.address, "Modl Allowance")
     console.log( rewardsIssuer.address, "Rewards Issuer",)
-    console.log(cmkRewardsIssuer.address, "CMK Rewards Issuer", )
+    console.log(cmkSubscriptionRewardsIssuer.address, "CMK Rewards Issuer", )
     console.log(liquidityManager.address,"liquidity Manager", )
     console.log( subscriptionBasic.address,"subscription: MODL basic")
     console.log( subscriptionPro.address,"subscription: MODL pro",)

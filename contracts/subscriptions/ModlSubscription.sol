@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./BaseSubscription.sol";
+import "./GenericSubscription.sol";
 
-contract ModlSubscription is BaseSubscription {
-    constructor(ConstructorParams memory params) BaseSubscription(params) {
+contract ModlSubscription is GenericSubscription {
+    constructor(ConstructorParams memory params) GenericSubscription(params) {
         require(
             params.tokenAddress ==
-                address(IRewardsIssuer(params.rewardsIssuerAddress).token()),
+                address(
+                    ISubscriptionRewardsIssuer(params.rewardsIssuerAddress)
+                        .token()
+                ),
             "CMERR: Both rewards and deposit token must be the same."
         );
     }
 
-    function rebalance(address account)
-        external
-        managerOrMine(account)
-        configured
-    {
+    function rebalance(address account) external managerOr(account) configured {
         _rebalance(account);
     }
 
@@ -28,18 +27,5 @@ contract ModlSubscription is BaseSubscription {
 
     function solvent(address account) public view override returns (bool) {
         return deposits(account) + rewards(account) >= fees(account);
-    }
-
-    function totalRewards() public view override returns (uint256) {
-        require(
-            rewardsIssuer.getUnissuedRewards(address(this)) +
-                IERC20(rewardsIssuer.token()).balanceOf(address(this)) >=
-                share[GLOBALS],
-            "CMERR: Math error what"
-        );
-        return
-            rewardsIssuer.getUnissuedRewards(address(this)) +
-            IERC20(rewardsIssuer.token()).balanceOf(address(this)) -
-            share[GLOBALS];
     }
 }

@@ -18,6 +18,7 @@ contract CSubscription is Configurable {
         uint256 ceilingPrice;
         address treasury;
     }
+
     Configuration public config;
 
     function configure(Configuration memory newConfig) external configurer {

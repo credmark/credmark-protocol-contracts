@@ -4,16 +4,12 @@ import * as utils from 'ethers/lib/utils';
 import { ethers, waffle } from 'hardhat';
 import { MerkleTree } from 'merkletreejs';
 import { setupProtocol, modelNft, modelNftRewards, MODL } from './helpers/contracts';
-import { USER_ALICE } from './helpers/users';
+import { USER_ALICE, USER_BRENT, CREDMARK_MANAGER, HACKER_ZACH, MOCK_GODMODE } from './helpers/users';
 
 import { expect } from 'chai';
+import { advanceAMonth, advanceAYear } from './helpers/time';
 
-describe('Credmark Rewards', () => {
-
-  let wallet: SignerWithAddress;
-  let USER_BRENT: SignerWithAddress;
-  let admin: SignerWithAddress;
-
+describe('Credmark Model NFT Rewards', () => {
   let merkleTree: MerkleTree;
 
   const leaves = [
@@ -53,8 +49,8 @@ describe('Credmark Rewards', () => {
 
 
   beforeEach(async () => {
-    [wallet, USER_BRENT, admin] = await ethers.getSigners();
-
+    await setupProtocol();
+    await MODL.connect(MOCK_GODMODE).mint(modelNftRewards.address,  BigNumber.from(100).mul(1e6).mul(BigNumber.from(10).pow(18)));
     merkleTree = new MerkleTree(
       leaves.map((leaf) => encodeLeaf(leaf)),
       utils.keccak256,
@@ -69,34 +65,29 @@ describe('Credmark Rewards', () => {
   describe('#setMerkleRoot', () => {
     it('should allow setting root', async () => {
       const root = merkleTree.getHexRoot();
-      await modelNftRewards.connect(admin).setMerkleRoot(root);
+      await modelNftRewards.connect(CREDMARK_MANAGER).setMerkleRoot(root);
 
       const newRoot = await modelNftRewards.merkleRoot();
       expect(newRoot).to.equal(root);
     });
 
-    it('should not allow setting root for non admin', async () => {
-      await expect(modelNftRewards.setMerkleRoot(merkleTree.getHexRoot())).to.be
+    it('should not allow setting root for non CREDMARK_MANAGER', async () => {
+      await expect(modelNftRewards.connect(HACKER_ZACH).setMerkleRoot(merkleTree.getHexRoot())).to.be
         .reverted;
     });
 
     it('should fail on setting root more than once', async () => {
       const root = merkleTree.getHexRoot();
-      await modelNftRewards.connect(admin).setMerkleRoot(root);
+      await modelNftRewards.connect(CREDMARK_MANAGER).setMerkleRoot(root);
       await expect(
-        modelNftRewards.connect(admin).setMerkleRoot(merkleTree.getHexRoot())
+        modelNftRewards.connect(CREDMARK_MANAGER).setMerkleRoot(merkleTree.getHexRoot())
       ).to.be.revertedWith('Root already set');
     });
   });
 
   describe('#claimRewards', () => {
     it('should allow claiming rewards', async () => {
-      await MODL
-        .connect(admin)
-        .transfer(
-            modelNftRewards.address,
-          BigNumber.from(100).mul(1e6).mul(BigNumber.from(10).pow(18))
-        );
+
 
       await modelNft.safeMint(USER_ALICE.address, "0x101010"); // 0
       await modelNft.safeMint(USER_ALICE.address, "0x201010"); // 1
@@ -107,7 +98,7 @@ describe('Credmark Rewards', () => {
       await modelNft.safeMint(USER_BRENT.address, "0x601010"); // 5
 
       await modelNftRewards
-        .connect(admin)
+        .connect(CREDMARK_MANAGER)
         .setMerkleRoot(merkleTree.getHexRoot());
 
       for (const leaf of leaves) {
@@ -125,17 +116,11 @@ describe('Credmark Rewards', () => {
     });
 
     it('should claim rewards only once', async () => {
-      await MODL
-        .connect(admin)
-        .transfer(
-          modelNftRewards.address,
-          BigNumber.from(100).mul(1e6).mul(BigNumber.from(10).pow(18))
-        );
 
       await modelNft.safeMint(USER_ALICE.address, "0x0101010"); // 0
 
       await modelNftRewards
-        .connect(admin)
+        .connect(CREDMARK_MANAGER)
         .setMerkleRoot(merkleTree.getHexRoot());
 
       const leaf = leaves[0];
@@ -161,15 +146,9 @@ describe('Credmark Rewards', () => {
     });
 
     it('should fail to claim rewards for unminted nft', async () => {
-      await MODL
-        .connect(admin)
-        .transfer(
-          modelNftRewards.address,
-          BigNumber.from(100).mul(1e6).mul(BigNumber.from(10).pow(18))
-        );
-
+        await setupProtocol();
       await modelNftRewards
-        .connect(admin)
+        .connect(CREDMARK_MANAGER)
         .setMerkleRoot(merkleTree.getHexRoot());
 
       const leaf = leaves[0];
@@ -183,17 +162,11 @@ describe('Credmark Rewards', () => {
     });
 
     it('should fail to claim rewards for wrong amount', async () => {
-      await MODL
-        .connect(admin)
-        .transfer(
-          modelNftRewards.address,
-          BigNumber.from(100).mul(1e6).mul(BigNumber.from(10).pow(18))
-        );
 
       await modelNft.safeMint(USER_ALICE.address, "0x10101010"); // 0
 
       await modelNftRewards
-        .connect(admin)
+        .connect(CREDMARK_MANAGER)
         .setMerkleRoot(merkleTree.getHexRoot());
 
       const leaf = leaves[0];
@@ -217,17 +190,11 @@ describe('Credmark Rewards', () => {
     });
 
     it('should reward to owner of nft only', async () => {
-      await MODL
-        .connect(admin)
-        .transfer(
-          modelNftRewards.address,
-          BigNumber.from(100).mul(1e6).mul(BigNumber.from(10).pow(18))
-        );
 
       await modelNft.safeMint(USER_ALICE.address, "0x10101010"); // 0
 
       await modelNftRewards
-        .connect(admin)
+        .connect(CREDMARK_MANAGER)
         .setMerkleRoot(merkleTree.getHexRoot());
 
       const leaf = leaves[0];

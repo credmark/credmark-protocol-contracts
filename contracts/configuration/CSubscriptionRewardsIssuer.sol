@@ -2,13 +2,14 @@
 pragma solidity ^0.8.4;
 import "./Configurable.sol";
 
-contract CModlAllowance is Configurable {
+contract CSubscriptionRewardsIssuer is Configurable {
     struct ConstructorParams {
         address modlAddress;
+        address modlAllowance;
     }
 
     struct Configuration {
-        uint256 ceiling;
+        uint256 amountPerAnnum;
     }
 
     Configuration config;

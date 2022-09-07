@@ -6,7 +6,6 @@ use(waffle.solidity);
 import { setupProtocol, MODL, subscriptionBasic, subscriptionPro, rewardsIssuer, subscriptionSuperPro, mockModlPriceOracle, revenueTreasury } from './helpers/contracts';
 import { CREDMARK_DEPLOYER, HACKER_ZACH, MOCK_GODMODE, setupUsers, USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID } from './helpers/users';
 import { advanceAMonth, advanceAYear } from './helpers/time';
-import { PriceAccumulator, ShareAccumulator } from '../typechain';
 
 declare global {
     interface Number {
@@ -28,8 +27,6 @@ String.prototype.TokValInt = function () {
     return Number(this.slice(0, -18));
 }
 describe('Subscription.sol', () => {
-    let subscriptionProDepAcc: ShareAccumulator;
-    let rewardsAccumulator: ShareAccumulator;
     let abal: Number;
     let bbal: Number;
     let cbal: Number;
@@ -70,14 +67,11 @@ describe('Subscription.sol', () => {
         bTotalDep = roundNearest100(await (await subscriptionBasic.totalDeposits()).toString().TokValInt());
         pTotalDep = roundNearest100(await (await subscriptionPro.totalDeposits()).toString().TokValInt());
         spTotalDep = roundNearest100(await (await subscriptionSuperPro.totalDeposits()).toString().TokValInt());
-        bTotalRewards = roundNearest100(await (await subscriptionBasic.totalRewards()).toString().TokValInt());
-        pTotalRewards = roundNearest100(await (await subscriptionPro.totalRewards()).toString().TokValInt());
-        spTotalRewards = roundNearest100(await (await subscriptionSuperPro.totalRewards()).toString().TokValInt());
         console.log(new Date((await ethers.provider.getBlock('latest')).timestamp * 1000));
         console.log("modl", abal, bbal, cbal);
-        console.log("basic", bTotalDep, bTotalRewards, "rewards:", abRewards, bbRewards, cbRewards);
-        console.log("pro", pTotalDep, pTotalRewards, "rewards:",apRewards, bpRewards, cpRewards);
-        console.log("superpro", spTotalDep, spTotalRewards, "rewards:",aspRewards, bspRewards, cspRewards);
+        console.log("basic", bTotalDep, "rewards:", abRewards, bbRewards, cbRewards);
+        console.log("pro", pTotalDep, "rewards:",apRewards, bpRewards, cpRewards);
+        console.log("superpro", spTotalDep, "rewards:",aspRewards, bspRewards, cspRewards);
         console.log();
     }
 

@@ -7,8 +7,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 contract Permissioned is AccessControl {
     bytes32 public constant CONFIGURER_ROLE = keccak256("CONFIGURER");
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER");
-    bytes32 public constant PRIVLEGED_USER_ROLE =
-        keccak256("PRIVLEGED_USER_ROLE");
     bytes32 public constant TRUSTED_CONTRACT_ROLE =
         keccak256("TRUSTED_CONTRACT_ROLE");
 
@@ -22,13 +20,11 @@ contract Permissioned is AccessControl {
         _;
     }
 
-    modifier managerOrMine(address account) {
-        require(msg.sender == account || hasRole(MANAGER_ROLE, msg.sender));
-        _;
-    }
-
-    modifier privlegedUser() {
-        _checkRole(PRIVLEGED_USER_ROLE);
+    modifier managerOr(address account) {
+        require(
+            msg.sender == account || hasRole(MANAGER_ROLE, msg.sender),
+            "unauthorized"
+        );
         _;
     }
 

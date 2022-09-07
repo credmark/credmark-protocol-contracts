@@ -126,7 +126,7 @@ contract LiquidityManager is Permissioned {
             "CMERR: sqrtPriceLimit doesn't match."
         );
 
-        (uint256 amount0, uint256 amount1) = NFPM.collect(
+        (uint256 amount0, ) = NFPM.collect(
             INonfungiblePositionManager.CollectParams({
                 tokenId: liquidityTokenId,
                 recipient: address(this),

@@ -6,26 +6,27 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../configuration/CSubscription.sol";
 
-import "../accumulators/ShareAccumulator.sol";
-import "../accumulators/PriceAccumulator.sol";
+import "./accumulators/ShareAccumulator.sol";
+import "./accumulators/PriceAccumulator.sol";
 
 import "../libraries/Time.sol";
 
-import "../interfaces/IRewardsIssuer.sol";
 import "../interfaces/ISubscription.sol";
-import "../interfaces/IRewardsIssuer.sol";
+import "../interfaces/ISubscriptionRewardsIssuer.sol";
 import "../interfaces/IPriceOracle.sol";
 
-contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
+contract GenericSubscription is
+    ISubscription,
+    CSubscription,
+    ShareAccumulator,
+    PriceAccumulator
+{
     using SafeERC20 for IERC20;
 
     IERC20 token;
-    IRewardsIssuer internal rewardsIssuer;
+    ISubscriptionRewardsIssuer internal rewardsIssuer;
     IPriceOracle internal oracle;
 
-    PriceAccumulator internal priceAccumulator;
-
-    mapping(address => uint256) internal feeOffset;
     mapping(address => uint256) internal lockupExpiration;
 
     uint256 constant MONTH_SEC = (30 * 24 * 60 * 60);
@@ -47,9 +48,8 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
     }
 
     constructor(ConstructorParams memory params) {
-        priceAccumulator = new PriceAccumulator();
         token = IERC20(params.tokenAddress);
-        rewardsIssuer = IRewardsIssuer(params.rewardsIssuerAddress);
+        rewardsIssuer = ISubscriptionRewardsIssuer(params.rewardsIssuerAddress);
     }
 
     function deposit(address account, uint256 amount)
@@ -69,7 +69,7 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
         external
         override
         isUnlocked(account)
-        managerOrMine(account)
+        managerOr(account)
         configured
     {
         (uint256 accountAmount, uint256 treasuryAmount) = _exit(account);
@@ -89,7 +89,7 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
     function claim(address account)
         external
         override
-        managerOrMine(account)
+        managerOr(account)
         configured
     {
         uint256 claimAmount = _claim(account);
@@ -111,7 +111,7 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
 
     function fees(address account) public view override returns (uint256) {
         return
-            ((priceAccumulator.offset() - feeOffset[account]) * config.fee) /
+            ((currentFeeOffset() - feeOffset[account]) * config.fee) /
             MONTH_SEC;
     }
 
@@ -131,14 +131,6 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
         returns (bool)
     {
         return deposits(account) >= fees(account);
-    }
-
-    function totalRewards() public view virtual returns (uint256) {
-        return
-            accumulation(
-                GLOBALS,
-                rewardsIssuer.getUnissuedRewards(address(this))
-            );
     }
 
     function totalDeposits() public view returns (uint256) {
@@ -170,7 +162,7 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
         snapshot();
 
         if (feeOffset[account] == 0) {
-            feeOffset[account] = priceAccumulator.offset();
+            feeOffset[account] = currentFeeOffset();
             lockupExpiration[account] = Time.now_u256() + config.lockup;
         }
         return amount;
@@ -185,6 +177,7 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
 
         _accumulate(rewardsIssuer.issue());
         _setShares(account, 0);
+
         feeOffset[account] = 0;
 
         snapshot();
@@ -217,8 +210,8 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
             rewardsIssuer.setShares(shares);
         }
 
-        if (price != priceAccumulator.price()) {
-            priceAccumulator.setPrice(price);
+        if (price != fprice) {
+            setPrice(price);
         }
     }
 

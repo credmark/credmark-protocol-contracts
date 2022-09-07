@@ -1,46 +1,74 @@
-# Advanced Sample Hardhat Project
+# Credmark Protocol Contracts
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+# Quickstart
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+This project will test in an ethereum fork. This is necessary for us to test using Uniswap factories and the like.
 
-Try running some of the following tasks:
+## Testing
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-npx hardhat help
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
-npx hardhat run scripts/deploy.ts
-TS_NODE_FILES=true npx ts-node scripts/deploy.ts
-npx eslint '**/*.{js,ts}'
-npx eslint '**/*.{js,ts}' --fix
-npx prettier '**/*.{json,sol,md}' --check
-npx prettier '**/*.{json,sol,md}' --write
-npx solhint 'contracts/**/*.sol'
-npx solhint 'contracts/**/*.sol' --fix
+Commands:
+
+`npm run compile`
+
+`npm run test`
+
+`npm run test:gas`
+
+## Permissions, Configurations, and Interfaces
+
+We're using Interface best practices. In addition we're creating Configuration .sol files for each of our configurable contracts so that we can manage permissions, configurations, and the like in a self-consistent way. The contracts are:
+```
+    contracts/configuration/Permissioned.sol
+    contracts/configuration/Configurable.sol
+    contracts/configuration/C{ContractName}.sol
 ```
 
-# Etherscan verification
+### C* files
 
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Ropsten.
+For configurations, Including a Configuration file gives us the opportunity to assign a deployer as a Configurer of a contract, and unify contract configuration to a single operation with a modifier that only allows contract functions to execute after configuration is complete. It's broken into a standard format:
 
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
-
-```shell
-hardhat run --network ropsten scripts/deploy.ts
 ```
 
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
+contract CContractName is Configurable {
+    struct ConstructorParams { }
 
-```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
+    struct Configuration { }
+
+    Configuration public config;
+
+    function configure(Configuration memory newConfig) external configurer {
+        config = newConfig;
+        _configured = true;
+    }
+}
+
+```
+`ConstructorParams` are immutable setup parameters. `Configuration` is global configuration that should only be changed by SUPER privleged entities, such as a governance contract or a multisig.
+
+then in the constructor fo the Contract, we structure it like this:
+
+```
+    constructor(ConstructorParams memory params) { 
+        immutableContract = IContractIWant(params.contractAddress);
+
+        /* Validate and set up contract */
+    }
+
+    function canOnlyHappenPostConfiguration() external configured {
+        /* stuff */
+    }
+
+    function canOnlyBeExecutedByTheConfigurer() external configurer {
+        /* stuff */
+    }
 ```
 
-# Performance optimizations
+## Modl
 
-For faster runs of your tests and scripts, consider skipping ts-node's type checking by setting the environment variable `TS_NODE_TRANSPILE_ONLY` to `1` in hardhat's environment. For more details see [the documentation](https://hardhat.org/guides/typescript.html#performance-optimizations).
+Modl is the core credmark token. It's replacing CMK as the token that the Credmark DAO provides liquidity for. It allows for minting by authorized contracts with the `MINTER_ROLE`
+
+It is based on the openzeppelin ERC20 wizard here: 
+```
+    contracts/token/Modl.sol
+    contracts/interfaces/IModl.sol
+```

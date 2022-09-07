@@ -10,7 +10,7 @@ library Time {
         return uint64(block.timestamp);
     }
 
-    function min(uint256 a, uint256 b) internal view returns (uint256) {
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a <= b ? a : b;
     }
 

@@ -24,13 +24,13 @@ describe('ModlAllowance.sol', () => {
     });
 
     it('Permissions prevent unauthorized calls', async () => {
-        await expect(MODLAllowance.connect(HACKER_ZACH).configure({modlAddress:MODL.address, ceiling: "1000000000000000000000000"})).to.be.reverted;
+        await expect(MODLAllowance.connect(HACKER_ZACH).configure({ceiling: "1000000000000000000000000"})).to.be.reverted;
         await expect(MODLAllowance.connect(HACKER_ZACH).update(HACKER_ZACH.address, "1000")).to.be.reverted;
         await expect(MODLAllowance.connect(HACKER_ZACH).emergencyStop(HACKER_ZACH.address)).to.be.reverted;
     });
 
     it('Permissions allow authorized calls', async () => {
-        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({modlAddress:MODL.address, ceiling: "1000000000000000000000000"})).not.to.be.reverted;
+        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({ceiling: "1000000000000000000000000"})).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(CREDMARK_TREASURY_MULTISIG.address, "1000")).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(CREDMARK_TREASURY_MULTISIG.address, "10000")).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).emergencyStop(CREDMARK_TREASURY_MULTISIG.address)).not.to.be.reverted;
@@ -38,7 +38,7 @@ describe('ModlAllowance.sol', () => {
     });
 
     it('Emits Linearly with Time', async () => {
-        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({modlAddress:MODL.address, ceiling: "1000000000000000000000000"})).not.to.be.reverted;
+        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({ceiling: "1000000000000000000000000"})).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(CREDMARK_TREASURY_MULTISIG.address, "12000")).not.to.be.reverted;
 
         for(let i = 0; i<24; i++){
@@ -48,15 +48,15 @@ describe('ModlAllowance.sol', () => {
     });
     
     it('The ceiling prevents over-allocation', async () => {
-        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({modlAddress:MODL.address, ceiling: "1000000000000000000000000"})).not.to.be.reverted;
+        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({ceiling: "1000000000000000000000000"})).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_ALICE.address, "1000000000000000000000000")).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_BRENT.address, "1")).reverted;
-        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({modlAddress:MODL.address, ceiling: "1000000000000000000000001"})).not.to.be.reverted;
+        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({ceiling: "1000000000000000000000001"})).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_BRENT.address, "1")).not.reverted;
     });
 
     it('Cannot Claim the same tokens twice', async () => {
-        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({modlAddress:MODL.address, ceiling: "1000000000000000000000000"})).not.to.be.reverted;
+        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({ceiling: "1000000000000000000000000"})).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_ALICE.address, "12000")).not.to.be.reverted;
 
         for(let i = 0; i<30; i++){
@@ -69,7 +69,7 @@ describe('ModlAllowance.sol', () => {
 
     it('it claims updated allowance', async () => {        
         
-        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({modlAddress:MODL.address, ceiling: "1000000000000000000000000"})).not.to.be.reverted;
+        await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).configure({ceiling: "1000000000000000000000000"})).not.to.be.reverted;
 
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_ALICE.address, "12000")).not.to.be.reverted;
         await expect(MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_BRENT.address, "12000")).not.to.be.reverted;

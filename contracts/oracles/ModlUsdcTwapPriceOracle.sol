@@ -38,8 +38,9 @@ contract ModlUsdcTwapPriceOracle is IPriceOracle {
 
     function price() external view override returns (uint256) {
         uint256 sqrtPriceX96twap;
+        uint256[] memory _buffer = buffer;
         for (uint256 i = 0; i < BUFFER_LENGTH; i++) {
-            sqrtPriceX96twap += (buffer[i] / BUFFER_LENGTH);
+            sqrtPriceX96twap += (_buffer[i] / BUFFER_LENGTH);
         }
         return sqrtPriceX96twap**2 / X192_DIV_TEN_20;
     }
