@@ -15,7 +15,6 @@ contract ShareAccumulator {
 
     function _accumulate(uint256 newAccumulation) internal {
         offst[GLOBALS] = _newOffset(newAccumulation);
-        accum[GLOBALS] += newAccumulation;
     }
 
     function _setShares(address account, uint256 newShares) internal {
@@ -34,7 +33,6 @@ contract ShareAccumulator {
     {
         removedAccumulation = accumulation(account);
         accum[account] = 0;
-        accum[GLOBALS] -= removedAccumulation;
         offst[account] = offst[GLOBALS];
     }
 

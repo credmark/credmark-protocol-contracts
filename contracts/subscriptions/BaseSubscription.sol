@@ -30,25 +30,18 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
 
     uint256 constant MONTH_SEC = (30 * 24 * 60 * 60);
 
-    modifier isSubscribable() {
+    modifier canSubscribe() {
         require(
-            config.subscribable || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            config.subscribable || hasRole(MANAGER_ROLE, msg.sender),
             "CMERR: Not Subscribable"
         );
         _;
     }
 
-    modifier lockup(address account) {
+    modifier isUnlocked(address account) {
         require(
             Time.now_u256() > lockupExpiration[account],
             "CMERR: Lockup in effect"
-        );
-        _;
-    }
-
-    modifier subscriptionOwner(address account) {
-        require(
-            msg.sender == account || hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
         );
         _;
     }
@@ -62,7 +55,7 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
     function deposit(address account, uint256 amount)
         external
         override
-        isSubscribable
+        canSubscribe
         configured
     {
         uint256 depositAmount = _deposit(account, amount);
@@ -75,7 +68,7 @@ contract BaseSubscription is ISubscription, CSubscription, ShareAccumulator {
     function exit(address account)
         external
         override
-        lockup(account)
+        isUnlocked(account)
         managerOrMine(account)
         configured
     {
