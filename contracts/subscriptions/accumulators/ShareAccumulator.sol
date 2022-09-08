@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.17;
 
 abstract contract ShareAccumulator {
     uint256 internal constant R = 10**18;

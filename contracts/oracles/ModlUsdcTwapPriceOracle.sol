@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.17;
 
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 

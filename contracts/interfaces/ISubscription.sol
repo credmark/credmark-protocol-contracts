@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.17;
 
 interface ISubscription {
     event Deposit(address indexed account, uint256 amount);
