@@ -4,7 +4,7 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-contract Permissioned is AccessControl {
+abstract contract Permissioned is AccessControl {
     bytes32 public constant CONFIGURER_ROLE = keccak256("CONFIGURER");
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER");
     bytes32 public constant TRUSTED_CONTRACT_ROLE =

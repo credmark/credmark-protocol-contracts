@@ -55,7 +55,7 @@ describe('LiquidityManager.sol : setup', () => {
       while (!token0tested || !token1tested)
       {
           await setupProtocol();
-          await liquidityManager.mint();
+          await liquidityManager.connect(CREDMARK_MANAGER).mint();
           await liquidityManager.connect(CREDMARK_MANAGER).start();
 
           expect(await (await liquidityManager.started()).toString()).not.eq("0");
@@ -75,7 +75,7 @@ describe('LiquidityManager.sol : setup', () => {
 
   it('Check Setup reversion states', async () => {
       await setupProtocol();
-      await liquidityManager.mint();
+      await liquidityManager.connect(CREDMARK_MANAGER).mint();
 
       expect(await (await liquidityManager.started()).toString()).eq("0");
       await expect(liquidityManager.connect(CREDMARK_MANAGER).start()).not.reverted;
@@ -100,7 +100,7 @@ describe('LiquidityManager.sol operation', () => {
 
         advanceAnHour();
 
-        await liquidityManager.mint();
+        await liquidityManager.connect(CREDMARK_MANAGER).mint();
         await liquidityManager.connect(CREDMARK_MANAGER).start();
 
         uniswapV3Pool = (await ethers.getContractAt(

@@ -3,7 +3,7 @@ pragma solidity ^0.8.7;
 
 import "./Permissioned.sol";
 
-contract Configurable is Permissioned {
+abstract contract Configurable is Permissioned {
     bool internal _configured;
 
     event Configured(bytes config);

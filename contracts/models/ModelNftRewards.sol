@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "../interfaces/IModlAllowance.sol";
+import "../interfaces/IModl.sol";
 import "../configuration/CModelNftRewards.sol";
 
 contract ModelNftRewards is CModelNftRewards {

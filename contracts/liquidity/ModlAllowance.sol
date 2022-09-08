@@ -2,11 +2,14 @@
 pragma solidity ^0.8.7;
 
 import "../configuration/CModlAllowance.sol";
+import "../configuration/Permissioned.sol";
 import "../interfaces/IModl.sol";
 import "../interfaces/IModlAllowance.sol";
 import "../libraries/Time.sol";
 
-contract ModlAllowance is CModlAllowance, IModlAllowance {
+contract ModlAllowance is IModlAllowance, CModlAllowance {
+    constructor(ConstructorParams memory params) CModlAllowance(params) {}
+
     uint256 private constant PER_ANNUM = 86400 * 365;
 
     struct Allowance {
@@ -18,11 +21,6 @@ contract ModlAllowance is CModlAllowance, IModlAllowance {
 
     uint256 public totalAllowancePerAnnum;
     uint256 public totalClaimed;
-    IModl public override modl;
-
-    constructor(ConstructorParams memory params) {
-        modl = IModl(params.modlAddress);
-    }
 
     function update(address account, uint256 amountPerAnnum)
         external
