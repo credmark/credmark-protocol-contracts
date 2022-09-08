@@ -15,6 +15,8 @@ contract ModlSubscription is GenericSubscription {
         );
     }
 
+    event Rebalanced(address indexed account, uint256 amount);
+
     function rebalance(address account) external managerOr(account) configured {
         _rebalance(account);
     }
@@ -22,7 +24,8 @@ contract ModlSubscription is GenericSubscription {
     function _rebalance(address account) internal {
         _accumulate(rewardsIssuer.issue());
         _deposit(account, rewards(account));
-        _removeAccumulation(account);
+        uint256 amount = _removeAccumulation(account);
+        emit Rebalanced(account, amount);
     }
 
     function solvent(address account) public view override returns (bool) {

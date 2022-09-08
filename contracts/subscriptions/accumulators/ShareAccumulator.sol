@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 abstract contract ShareAccumulator {
     uint256 internal constant R = 10**18;
-    address internal constant GLOBALS = address(0x0);
+    address internal constant GLOBALS = address(0xfeed);
 
     mapping(address => uint256) internal share;
     mapping(address => uint256) internal offst;

@@ -2,20 +2,27 @@
 pragma solidity ^0.8.4;
 import "./Configurable.sol";
 
+import "../interfaces/IModl.sol";
+
 contract CSubscriptionRewardsIssuer is Configurable {
     struct ConstructorParams {
         address modlAddress;
-        address modlAllowance;
     }
 
     struct Configuration {
         uint256 amountPerAnnum;
     }
 
-    Configuration config;
+    constructor(ConstructorParams memory params) {
+        modl = IModl(params.modlAddress);
+    }
 
     function configure(Configuration memory newConfig) external {
         config = newConfig;
         _postConfiguration();
     }
+
+    Configuration config;
+
+    IModl public immutable modl;
 }

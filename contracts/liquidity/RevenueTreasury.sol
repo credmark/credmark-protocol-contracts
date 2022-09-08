@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../interfaces/IRevenueTreasury.sol";
@@ -20,5 +21,19 @@ contract RevenueTreasury is IRevenueTreasury, CRevenueTreasury {
         }
         uint256 amount = IERC20(tokenAddress).balanceOf(address(this));
         IERC20(tokenAddress).safeTransfer(config.daoAddress, amount);
+        require(amount > 0, "CMERR: Nothing to transfer");
+    }
+
+    function settle(address tokenAddress, uint256 tokenId)
+        external
+        override
+        manager
+        configured
+    {
+        IERC721(tokenAddress).safeTransferFrom(
+            address(this),
+            config.daoAddress,
+            tokenId
+        );
     }
 }

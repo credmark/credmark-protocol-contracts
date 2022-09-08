@@ -2,6 +2,15 @@
 pragma solidity ^0.8.4;
 
 interface ISubscription {
+    event Deposit(address indexed account, uint256 amount);
+    event Exit(address indexed account, uint256 amount, uint256 fee);
+    event Claim(address indexed account, uint256 amount);
+    event Liquidate(
+        address indexed account,
+        address indexed liquidator,
+        uint256 amount
+    );
+
     function deposit(address account, uint256 amount) external;
 
     function exit(address account) external;

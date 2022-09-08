@@ -18,7 +18,7 @@ abstract contract PriceAccumulator {
         fsnapt = Time.now_u256();
     }
 
-    function currentFeeOffset() public view returns (uint256) {
+    function currentFeeOffset() internal view returns (uint256) {
         return
             fprice == 0
                 ? foffst

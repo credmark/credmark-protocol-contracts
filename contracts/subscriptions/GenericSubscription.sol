@@ -23,9 +23,7 @@ contract GenericSubscription is
 {
     using SafeERC20 for IERC20;
 
-    IERC20 token;
-    ISubscriptionRewardsIssuer internal rewardsIssuer;
-    IPriceOracle internal oracle;
+    constructor(ConstructorParams memory params) CSubscription(params) {}
 
     mapping(address => uint256) internal lockupExpiration;
 
@@ -45,11 +43,6 @@ contract GenericSubscription is
             "CMERR: Lockup in effect"
         );
         _;
-    }
-
-    constructor(ConstructorParams memory params) {
-        token = IERC20(params.tokenAddress);
-        rewardsIssuer = ISubscriptionRewardsIssuer(params.rewardsIssuerAddress);
     }
 
     function deposit(address account, uint256 amount)
@@ -154,7 +147,7 @@ contract GenericSubscription is
 
     function _deposit(address account, uint256 amount)
         internal
-        returns (uint256 depositTransferAmount)
+        returns (uint256)
     {
         _accumulate(rewardsIssuer.issue());
         _setShares(account, share[account] + amount);
@@ -165,15 +158,17 @@ contract GenericSubscription is
             feeOffset[account] = currentFeeOffset();
             lockupExpiration[account] = Time.now_u256() + config.lockup;
         }
+
+        emit Deposit(account, amount);
         return amount;
     }
 
     function _exit(address account)
         internal
-        returns (uint256 accountAmount, uint256 treasuryAmount)
+        returns (uint256 amount, uint256 fee)
     {
-        treasuryAmount = min(fees(account), deposits(account));
-        accountAmount = deposits(account) - treasuryAmount;
+        amount = min(fees(account), deposits(account));
+        fee = deposits(account) - amount;
 
         _accumulate(rewardsIssuer.issue());
         _setShares(account, 0);
@@ -181,23 +176,30 @@ contract GenericSubscription is
         feeOffset[account] = 0;
 
         snapshot();
+
+        emit Exit(account, amount, fee);
     }
 
-    function _claim(address account) internal returns (uint256 claimAmount) {
+    function _claim(address account) internal returns (uint256 amount) {
         _accumulate(rewardsIssuer.issue());
-        return _removeAccumulation(account);
+
+        amount = _removeAccumulation(account);
+
+        emit Claim(account, amount);
     }
 
     function _liquidate(address account)
         internal
         virtual
-        returns (uint256 treasuryAmount)
+        returns (uint256 amount)
     {
         require(
             !solvent(account),
             "CMERR: Cannot liquidate solvent subscriptions."
         );
-        (, treasuryAmount) = _exit(account);
+        (, amount) = _exit(account);
+
+        emit Liquidate(account, msg.sender, amount);
     }
 
     function snapshot() public {

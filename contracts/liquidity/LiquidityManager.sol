@@ -117,10 +117,10 @@ contract LiquidityManager is
         liquidityTokenId = tokenId;
         currentLiquidity = liquidity;
         started = block.timestamp;
-        emit Started();
+        emit Start(poolAddress);
     }
 
-    function clean(uint160 sqrtPriceLimitX96)
+    function clean(uint160 sqrtPriceLimitX96_)
         external
         override
         nonReentrant
@@ -130,7 +130,7 @@ contract LiquidityManager is
 
         (uint160 sqrtPriceLimitX96Check, , , , , , ) = pool.slot0();
         require(
-            sqrtPriceLimitX96Check == sqrtPriceLimitX96,
+            sqrtPriceLimitX96Check == sqrtPriceLimitX96_,
             "CMERR: sqrtPriceLimit doesn't match."
         );
 
@@ -143,11 +143,9 @@ contract LiquidityManager is
             })
         );
 
-        TransferHelper.safeApprove(
-            address(usdc),
-            address(SWAP),
-            usdc.balanceOf(address(this))
-        );
+        uint256 usdcBalance = usdc.balanceOf(address(this));
+
+        TransferHelper.safeApprove(address(usdc), address(SWAP), usdcBalance);
 
         SWAP.exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
@@ -156,16 +154,18 @@ contract LiquidityManager is
                 fee: POOL_FEE,
                 recipient: address(this),
                 deadline: block.timestamp,
-                amountIn: usdc.balanceOf(address(this)),
+                amountIn: usdcBalance,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             })
         );
 
-        uint256 modlBalanceToBurn = modl.balanceOf(address(this));
-        modl.burn(modlBalanceToBurn);
+        uint256 modlBalance = modl.balanceOf(address(this));
+        bool modlTransferSuccess = modl.transfer(revenueTreasury, modlBalance);
 
-        emit Cleanup(modlBalanceToBurn);
+        emit Clean(sqrtPriceLimitX96_, usdcBalance, modlBalance);
+
+        require(modlTransferSuccess, "Couldn't Transfer Modl");
     }
 
     function transferPosition(address to) external configurer {

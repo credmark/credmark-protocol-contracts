@@ -13,7 +13,7 @@ import {
   GenericSubscription,
   ModelNftRewards,
   ModelNft,
-  MockPriceOracle,
+  ManagedPriceOracle,
   RevenueTreasury
 } from "../../typechain";
 import {
@@ -38,9 +38,9 @@ let swapRouter: ISwapRouter;
 let nonFungiblePositionManager: INonfungiblePositionManager;
 let rewardsIssuer: SubscriptionRewardsIssuer;
 let cmkSubscriptionRewardsIssuer: SubscriptionRewardsIssuer;
-let mockUsdcPriceOracle: MockPriceOracle;
-let mockModlPriceOracle: MockPriceOracle;
-let mockCmkPriceOracle: MockPriceOracle;
+let mockUsdcPriceOracle: ManagedPriceOracle;
+let mockModlPriceOracle: ManagedPriceOracle;
+let mockCmkPriceOracle: ManagedPriceOracle;
 let modelNft: ModelNft;
 let modelNftRewards: ModelNftRewards;
 let revenueTreasury: RevenueTreasury;
@@ -107,8 +107,8 @@ async function deployContracts() {
   let SubscriptionRewardsIssuerFactory = await ethers.getContractFactory("SubscriptionRewardsIssuer", {
     libraries: { Time: lTime.address },
   });
-  let MockPriceOracleFactory = await ethers.getContractFactory(
-    "MockPriceOracle"
+  let ManagedPriceOracleFactory = await ethers.getContractFactory(
+    "ManagedPriceOracle"
   );
   let ModelNftRewardsFactory = await ethers.getContractFactory("ModelNftRewards");
   let ModelNftFactory = await ethers.getContractFactory("ModelNft");
@@ -119,33 +119,32 @@ async function deployContracts() {
   MODL = (await ModlFactory.deploy()) as Modl;
 
   MODLAllowance = (await ModlAllowanceFactory.deploy({modlAddress: MODL.address})) as ModlAllowance;
-
+  revenueTreasury = (await RevenueTreasuryFactory.deploy({modlAddress:MODL.address}));
 
   liquidityManager = (await LiquidityManagerFactory.deploy({
     modlAddress:MODL.address,
     usdcAddress:USDC.address,
     launchLiquidity: "7500000000000000000000000",
-    lockup: (2 * 365 * 86400).toString()
+    lockup: (2 * 365 * 86400).toString(),
+    revenueTreasury: revenueTreasury.address
   })) as LiquidityManager;
 
 
   rewardsIssuer = (await SubscriptionRewardsIssuerFactory.deploy({
-    modlAddress: MODL.address,
-    modlAllowance: MODLAllowance.address
+    modlAddress: MODL.address
   })) as SubscriptionRewardsIssuer;
 
   cmkSubscriptionRewardsIssuer = (await SubscriptionRewardsIssuerFactory.deploy({
-    modlAddress: MODL.address,
-    modlAllowance: MODLAllowance.address
+    modlAddress: MODL.address
   })) as SubscriptionRewardsIssuer;
 
-  revenueTreasury = (await RevenueTreasuryFactory.deploy({modlAddress:MODL.address}));
+
 
   modelNft = (await ModelNftFactory.deploy()) as ModelNft;
   modelNftRewards = (await ModelNftRewardsFactory.deploy({modlAddress: MODL.address, modlAllowanceAddress: MODLAllowance.address, modelNftAddress: modelNft.address}));
-  mockUsdcPriceOracle = await MockPriceOracleFactory.deploy();
-  mockModlPriceOracle = await MockPriceOracleFactory.deploy();
-  mockCmkPriceOracle = await MockPriceOracleFactory.deploy();
+  mockUsdcPriceOracle = await ManagedPriceOracleFactory.deploy({tokenAddress: USDC.address, initialDecimals: 8, initialPrice:100000000});
+  mockModlPriceOracle = await ManagedPriceOracleFactory.deploy({tokenAddress: MODL.address, initialDecimals: 8, initialPrice:100000000});
+  mockCmkPriceOracle = await ManagedPriceOracleFactory.deploy({tokenAddress: CMK.address, initialDecimals: 8, initialPrice:50000000});
 
 
   subscriptionBasic = (await ModlSubscriptionFactory.deploy({
@@ -213,8 +212,8 @@ async function grantPermissions(){
     await liquidityManager.grantRole(
         MANAGER_ROLE, CREDMARK_MANAGER.address);
 
-    await liquidityManager.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
-
+    await modelNft.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
+    
     await MODL.grantRole(MINTER_ROLE, MODLAllowance.address);
     await MODL.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
     await MODL.grantRole(MINTER_ROLE, rewardsIssuer.address);
@@ -404,4 +403,6 @@ export {
   NULL_ADDRESS,
   VESTING_MANAGER,
   ACCUMULATOR_ROLE,
+  CONFIGURER_ROLE,
+  MANAGER_ROLE
 };

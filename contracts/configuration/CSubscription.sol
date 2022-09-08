@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "./Configurable.sol";
+
+import "../interfaces/ISubscriptionRewardsIssuer.sol";
+import "../interfaces/IPriceOracle.sol";
 
 contract CSubscription is Configurable {
     struct ConstructorParams {
@@ -19,10 +25,20 @@ contract CSubscription is Configurable {
         address treasury;
     }
 
-    Configuration public config;
+    constructor(ConstructorParams memory params) {
+        token = IERC20(params.tokenAddress);
+        rewardsIssuer = ISubscriptionRewardsIssuer(params.rewardsIssuerAddress);
+    }
 
     function configure(Configuration memory newConfig) external {
         config = newConfig;
+        oracle = IPriceOracle(newConfig.oracleAddress);
         _postConfiguration();
     }
+
+    Configuration public config;
+
+    IERC20 public immutable token;
+    ISubscriptionRewardsIssuer internal immutable rewardsIssuer;
+    IPriceOracle internal oracle;
 }

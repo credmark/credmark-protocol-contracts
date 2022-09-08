@@ -4,7 +4,7 @@ import { expect, use } from "chai";
 use(waffle.solidity);
 
 import { setupProtocol, MODL, subscriptionBasic, subscriptionPro, rewardsIssuer, subscriptionSuperPro, mockModlPriceOracle, revenueTreasury } from './helpers/contracts';
-import { CREDMARK_DEPLOYER, HACKER_ZACH, MOCK_GODMODE, setupUsers, USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID } from './helpers/users';
+import { CREDMARK_CONFIGURER, CREDMARK_DEPLOYER, HACKER_ZACH, MOCK_GODMODE, setupUsers, USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID } from './helpers/users';
 import { advanceAMonth, advanceAYear } from './helpers/time';
 
 declare global {
@@ -141,28 +141,28 @@ describe('Subscription.sol', () => {
         
         expect(await (await subscriptionPro.fees(USER_ALICE.address)).toString()).eq("1000000000000000000000");
 
-        await mockModlPriceOracle.set("200000000", "8");
+        await mockModlPriceOracle.connect(CREDMARK_CONFIGURER).configure({price:"200000000", decimals:"8"});
         await subscriptionPro.snapshot();
 
         await advanceAMonth();
 
         expect(await (await subscriptionPro.fees(USER_ALICE.address)).toString().substring(0, 4)).eq("1250");
 
-        await mockModlPriceOracle.set("400000000", "8");
+        await mockModlPriceOracle.connect(CREDMARK_CONFIGURER).configure({price:"400000000", decimals:"8"});
         await subscriptionPro.snapshot();
 
         await advanceAMonth();
 
         expect(await (await subscriptionPro.fees(USER_ALICE.address)).toString().substring(0, 4)).eq("1375");
 
-        await mockModlPriceOracle.set("100000000", "8");
+        await mockModlPriceOracle.connect(CREDMARK_CONFIGURER).configure({price:"100000000", decimals:"8"});
         await subscriptionPro.snapshot();
 
         await advanceAMonth();
 
         expect(await (await subscriptionPro.fees(USER_ALICE.address)).toString().substring(0, 4)).eq("1875");
 
-        await mockModlPriceOracle.set("50000000", "8");
+        await mockModlPriceOracle.connect(CREDMARK_CONFIGURER).configure({price:"25000000", decimals:"8"});
         await subscriptionPro.snapshot();
 
         await advanceAMonth();
