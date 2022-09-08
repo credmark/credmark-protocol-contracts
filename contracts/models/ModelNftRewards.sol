@@ -19,7 +19,7 @@ contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
         require(merkleRoot == "", "Root already set");
         merkleRoot = root;
 
-        emit RootUpdated(root);
+        emit RootUpdate(root);
     }
 
     function claimRewards(
@@ -41,7 +41,7 @@ contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
 
         bool success = modl.transfer(tokenOwner, unclaimedRewards);
 
-        emit Claimed(tokenId, tokenOwner, amount);
+        emit Claim(tokenId, tokenOwner, amount);
         require(success, "Transfer Failed");
     }
 }
