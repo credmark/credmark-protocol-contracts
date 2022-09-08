@@ -14,7 +14,10 @@ contract ChainlinkPriceOracle is IPriceOracle {
 
     function price() public view override returns (uint256) {
         (, int256 latestPrice, , , ) = _oracle.latestRoundData();
-        require(latestPrice >= 0, "No data present");
+        require(
+            latestPrice >= 0,
+            "ChainlinkPriceOracle:VALUE_ERROR:latestPrice"
+        );
         return uint256(latestPrice);
     }
 

@@ -29,7 +29,10 @@ contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
     ) external override {
         bytes32 leaf = keccak256(abi.encode(tokenId, amount));
 
-        require(MerkleProof.verify(proof, merkleRoot, leaf), "Invalid proof");
+        require(
+            MerkleProof.verify(proof, merkleRoot, leaf),
+            "ModelNftRewards:PROOF_FAILED"
+        );
 
         uint256 unclaimedRewards = amount - claimed[tokenId];
         address tokenOwner = modelNft.ownerOf(tokenId);
@@ -42,6 +45,6 @@ contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
         bool success = modl.transfer(tokenOwner, unclaimedRewards);
 
         emit Claim(tokenId, tokenOwner, amount);
-        require(success, "Transfer Failed");
+        require(success, "ModelNftRewards:TRANSFER_FAILED");
     }
 }

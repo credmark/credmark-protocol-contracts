@@ -46,23 +46,38 @@ contract LiquidityManager is
     uint256 sqrtPriceLimitSnapTimestamp;
 
     function mint() external override nonReentrant manager {
-        require(started == 0, "CMERR: Pool already Started");
-        require(launchLiquidity > 0, "CMERR: No liquidity");
-        require(modl.balanceOf(address(this)) == 0, "CMERR: Already minted");
-        require(modl.hasRole(keccak256("MINTER_ROLE"), address(this)));
+        require(started == 0, "LiquidityManager:STARTED");
+        require(
+            launchLiquidity > 0,
+            "LiquidityManager:VALUE_ERROR:launchLiquidity"
+        );
+        require(
+            modl.balanceOf(address(this)) == 0,
+            "LiquidityManager:NONZERO_BALANCE"
+        );
+        require(
+            modl.hasRole(keccak256("MINTER_ROLE"), address(this)),
+            "LiquidityManager:UNAUTHORIZED"
+        );
 
         modl.mint(address(this), launchLiquidity);
-        require(modl.balanceOf(address(this)) == launchLiquidity);
+        require(
+            modl.balanceOf(address(this)) == launchLiquidity,
+            "LiquidityManager:VALUE_ERROR:launchLiquidity"
+        );
 
         modl.renounceRole(keccak256("MINTER_ROLE"), address(this));
-        require(!modl.hasRole(keccak256("MINTER_ROLE"), address(this)));
+        require(
+            !modl.hasRole(keccak256("MINTER_ROLE"), address(this)),
+            "LiquidityManager:AUTHORIZED"
+        );
     }
 
     function start() external override nonReentrant manager {
-        require(started == 0, "CMERR: Pool already Started");
+        require(started == 0, "LiquidityManager:STARTED");
         require(
             modl.balanceOf(address(this)) > 0,
-            "CMERR: Can't start without Tokens"
+            "LiquidityManager:ZERO_BALANCE"
         );
 
         address poolAddress = FACT.createPool(
@@ -70,15 +85,16 @@ contract LiquidityManager is
             address(usdc),
             POOL_FEE
         );
-
         require(
             poolAddress != address(0),
-            "CMERR: Couldn't create uniswap pool."
+            "LiquidityManager:VALUE_ERROR:poolAddress"
         );
 
         pool = IUniswapV3Pool(poolAddress);
+        address token0 = pool.token0();
+        address token1 = pool.token1();
 
-        if (pool.token0() == address(modl)) {
+        if (token0 == address(modl)) {
             tickLower = tickInit + 100;
         } else {
             tickInit = -tickInit;
@@ -86,11 +102,6 @@ contract LiquidityManager is
         }
 
         pool.initialize(TickMath.getSqrtRatioAtTick(tickInit));
-
-        require(
-            address(pool) != address(0),
-            "CMERR: Pool Not Created Successfully"
-        );
 
         TransferHelper.safeApprove(
             address(modl),
@@ -100,13 +111,13 @@ contract LiquidityManager is
 
         (uint256 tokenId, uint128 liquidity, , ) = NFPM.mint(
             INonfungiblePositionManager.MintParams({
-                token0: pool.token0(),
-                token1: pool.token1(),
-                fee: pool.fee(),
+                token0: token0,
+                token1: token1,
+                fee: POOL_FEE,
                 tickLower: tickLower,
                 tickUpper: tickUpper,
-                amount0Desired: IERC20(pool.token0()).balanceOf(address(this)),
-                amount1Desired: IERC20(pool.token1()).balanceOf(address(this)),
+                amount0Desired: IERC20(token0).balanceOf(address(this)),
+                amount1Desired: IERC20(token1).balanceOf(address(this)),
                 amount0Min: 0,
                 amount1Min: 0,
                 recipient: address(this),
@@ -126,12 +137,12 @@ contract LiquidityManager is
         nonReentrant
         manager
     {
-        require(started != 0, "CMERR: Pool not started");
+        require(started != 0, "LiquidityManager:NOT_STARTED");
 
         (uint160 sqrtPriceLimitX96Check, , , , , , ) = pool.slot0();
         require(
             sqrtPriceLimitX96Check == sqrtPriceLimitX96_,
-            "CMERR: sqrtPriceLimit doesn't match."
+            "LiquidityManager:VALUE_ERROR:sqrtPriceLimitX96Check"
         );
 
         NFPM.collect(
@@ -165,12 +176,15 @@ contract LiquidityManager is
 
         emit Clean(sqrtPriceLimitX96_, usdcBalance, modlBalance);
 
-        require(modlTransferSuccess, "Couldn't Transfer Modl");
+        require(modlTransferSuccess, "LiquidityManager:TRANSFER_FAILED");
     }
 
     function transferPosition(address to) external configurer {
-        require(started != 0, "CMERR: Not Started");
-        require(block.timestamp > started + lockup, "CMERR: Locked");
+        require(started != 0, "LiquidityManager:NOT_STARTED");
+        require(
+            block.timestamp > started + lockup,
+            "LiquidityManager:TIMELOCK"
+        );
         NFPM.transferFrom(address(this), to, liquidityTokenId);
     }
 }

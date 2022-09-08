@@ -21,7 +21,7 @@ contract RevenueTreasury is IRevenueTreasury, CRevenueTreasury {
         }
         uint256 amount = IERC20(tokenAddress).balanceOf(address(this));
         IERC20(tokenAddress).safeTransfer(config.daoAddress, amount);
-        require(amount > 0, "CMERR: Nothing to transfer");
+        require(amount > 0, "RevenueTreasury:ZERO_BALANCE");
     }
 
     function settle(address tokenAddress, uint256 tokenId)

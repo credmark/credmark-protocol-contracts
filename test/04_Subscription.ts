@@ -174,13 +174,12 @@ describe('Subscription.sol', () => {
         await expect((subscriptionBasic.connect(USER_ALICE).deposit(USER_ALICE.address, "10000000000000000000000"))).not.reverted;
         await expect((subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address))).reverted;
         await advanceAMonth();
-        await advanceAMonth();
 
         await expect((subscriptionBasic.connect(HACKER_ZACH).exit(USER_ALICE.address))).reverted;
         expect((await MODL.balanceOf(USER_ALICE.address)).toString()).to.eq("0");
         await ((subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address)));
         expect((await MODL.balanceOf(USER_ALICE.address)).toString()).to.eq("10000000000000000000000");
-
+        await expect((subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address))).reverted;
     });
 
     it('Subscription: Collects Fees', async () => {

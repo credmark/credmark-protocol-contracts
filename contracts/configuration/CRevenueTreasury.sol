@@ -20,8 +20,14 @@ abstract contract CRevenueTreasury is Configurable {
     }
 
     function configure(Configuration memory newConfig) external {
-        require(newConfig.modlPercentToDao <= 100, "IC");
-        require(newConfig.daoAddress != address(0x0), "IC");
+        require(
+            newConfig.modlPercentToDao <= 100,
+            "CRevenueTreasury:CONFIG_VALUE_ERROR:modlPercentToDao"
+        );
+        require(
+            newConfig.daoAddress != address(0x0),
+            "CRevenueTreasury:CONFIG_VALUE_ERROR:daoAddress"
+        );
         config = newConfig;
         _postConfiguration();
     }

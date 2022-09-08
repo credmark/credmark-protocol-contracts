@@ -23,7 +23,7 @@ abstract contract Permissioned is AccessControl {
     modifier managerOr(address account) {
         require(
             msg.sender == account || hasRole(MANAGER_ROLE, msg.sender),
-            "unauthorized"
+            "UNAUTHORIZED"
         );
         _;
     }

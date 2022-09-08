@@ -32,7 +32,7 @@ contract GenericSubscription is
     modifier canSubscribe() {
         require(
             config.subscribable || hasRole(MANAGER_ROLE, msg.sender),
-            "CMERR: Not Subscribable"
+            "Subscription:UNAUTHORIZED"
         );
         _;
     }
@@ -40,7 +40,7 @@ contract GenericSubscription is
     modifier isUnlocked(address account) {
         require(
             Time.now_u256() > lockupExpiration[account],
-            "CMERR: Lockup in effect"
+            "Subscription:TIMELOCK"
         );
         _;
     }
@@ -51,11 +51,11 @@ contract GenericSubscription is
         canSubscribe
         configured
     {
-        uint256 depositAmount = _deposit(account, amount);
+        _deposit(account, amount);
 
-        token.safeTransferFrom(msg.sender, address(this), depositAmount);
+        token.safeTransferFrom(msg.sender, address(this), amount);
 
-        require(depositAmount > 0, "CMERR: No deposit amount");
+        require(amount > 0, "Subscription:ZERO_BALANCE");
     }
 
     function exit(address account)
@@ -65,18 +65,21 @@ contract GenericSubscription is
         managerOr(account)
         configured
     {
-        (uint256 accountAmount, uint256 treasuryAmount) = _exit(account);
+        (uint256 amount, uint256 fee) = _exit(account);
 
-        if (accountAmount > 0) {
-            token.safeTransfer(account, accountAmount);
+        if (amount > 0) {
+            token.safeTransfer(account, amount);
         }
 
-        if (treasuryAmount > 0) {
-            token.safeTransfer(config.treasury, treasuryAmount);
+        if (fee > 0) {
+            token.safeTransfer(config.treasury, fee);
         }
 
-        require(accountAmount > 0 || treasuryAmount > 0, "CMERR: no deposit.");
-        require(config.treasury != address(0), "CMERR: no treasury");
+        require(amount > 0 || fee > 0, "Subscription:ZERO_BALANCE");
+        require(
+            config.treasury != address(0),
+            "Subscription:VALUE_ERROR:treasury"
+        );
     }
 
     function claim(address account)
@@ -88,14 +91,14 @@ contract GenericSubscription is
         uint256 claimAmount = _claim(account);
         token.safeTransfer(account, claimAmount);
 
-        require(claimAmount > 0, "CMERR: No Rewards.");
+        require(claimAmount > 0, "Subscription:ZERO_BALANCE");
     }
 
     function liquidate(address account) external override configured {
         uint256 liquidationAmount = _liquidate(account);
         token.safeTransfer(config.treasury, liquidationAmount);
 
-        require(liquidationAmount > 0, "CMERR: Nothing to liquidate.");
+        require(liquidationAmount > 0, "Subscription:ZERO_BALANCE");
     }
 
     function deposits(address account) public view override returns (uint256) {
@@ -167,8 +170,9 @@ contract GenericSubscription is
         internal
         returns (uint256 amount, uint256 fee)
     {
-        amount = min(fees(account), deposits(account));
-        fee = deposits(account) - amount;
+        amount = deposits(account);
+        fee = min(amount, fees(account));
+        amount -= fee;
 
         _accumulate(rewardsIssuer.issue());
         _setShares(account, 0);
@@ -193,10 +197,7 @@ contract GenericSubscription is
         virtual
         returns (uint256 amount)
     {
-        require(
-            !solvent(account),
-            "CMERR: Cannot liquidate solvent subscriptions."
-        );
+        require(!solvent(account), "Subscription:VALUE_ERROR:solvent");
         (, amount) = _exit(account);
 
         emit Liquidate(account, msg.sender, amount);

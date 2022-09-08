@@ -9,7 +9,7 @@ abstract contract Configurable is Permissioned {
     event Configured(bytes config);
 
     modifier configured() {
-        require(_configured, "Not Configured");
+        require(_configured, "CONFIGURED");
         _;
     }
 

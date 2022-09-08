@@ -11,7 +11,7 @@ contract ModlSubscription is GenericSubscription {
                     ISubscriptionRewardsIssuer(params.rewardsIssuerAddress)
                         .token()
                 ),
-            "CMERR: Both rewards and deposit token must be the same."
+            "ModlSubscription:VALUE_ERROR:tokenAddress"
         );
     }
 

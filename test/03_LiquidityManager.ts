@@ -7,9 +7,10 @@ let expect = chai.expect;
 import { setupProtocol, MODL, DEFAULT_ADMIN_ROLE, CMK, USDC, liquidityManager, MINTER_ROLE, NULL_ADDRESS, swapRouter } from './helpers/contracts';
 import { setupUsers, CREDMARK_MANAGER, HACKER_ZACH, USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID, CREDMARK_TREASURY_MULTISIG, CREDMARK_DEPLOYER, CREDMARK_CONFIGURER, MOCK_GODMODE } from './helpers/users';
 import { advanceAnHour, advanceADay, advanceAMonth, advanceAYear} from './helpers/time';
-import { IUniswapV3Pool } from '../typechain';
+
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { BigNumber } from 'ethers';
+import { IUniswapV3Pool } from '../typechain';
 
 
 function expectClose(value: number, expectedValue: number) {
@@ -57,7 +58,6 @@ describe('LiquidityManager.sol : setup', () => {
           await setupProtocol();
           await liquidityManager.connect(CREDMARK_MANAGER).mint();
           await liquidityManager.connect(CREDMARK_MANAGER).start();
-
           expect(await (await liquidityManager.started()).toString()).not.eq("0");
           let uniswapV3Pool = (await ethers.getContractAt(
               "contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool",

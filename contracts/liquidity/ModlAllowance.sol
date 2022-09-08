@@ -26,10 +26,7 @@ contract ModlAllowance is IModlAllowance, CModlAllowance {
         external
         configurer
     {
-        require(
-            account != address(0),
-            "CMERR: account must not be null address."
-        );
+        require(account != address(0), "ModlAllowance:NULL_ADDRESS");
 
         totalAllowancePerAnnum =
             totalAllowancePerAnnum +
@@ -43,16 +40,13 @@ contract ModlAllowance is IModlAllowance, CModlAllowance {
 
         require(
             totalAllowancePerAnnum <= config.ceiling,
-            "CMERR: Cannot allocate more than ceiling."
+            "ModlAllowance:VALUE_ERROR:totalAllowancePerAnnum"
         );
         emit Update(account, amountPerAnnum);
     }
 
     function emergencyStop(address account) external configurer configured {
-        require(
-            account != address(0),
-            "CMERR: account must not be null address."
-        );
+        require(account != address(0), "ModlAllowance:NULL_ADDRESS");
 
         totalAllowancePerAnnum =
             totalAllowancePerAnnum -
