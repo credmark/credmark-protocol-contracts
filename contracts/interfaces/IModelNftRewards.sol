@@ -2,8 +2,8 @@
 pragma solidity ^0.8.4;
 
 interface IModelNftRewards {
-    event RootUpdated(bytes32 root);
-    event Claimed(uint256 indexed tokenId, address indexed to, uint256 amount);
+    event RootUpdate(bytes32 root);
+    event Claim(uint256 indexed tokenId, address indexed to, uint256 amount);
 
     function setMerkleRoot(bytes32 root) external;
 
