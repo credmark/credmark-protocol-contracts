@@ -240,6 +240,10 @@ async function grantPermissions() {
     CONFIGURER_ROLE,
     CREDMARK_CONFIGURER.address
   );
+  await modelNft.grantRole(
+    CONFIGURER_ROLE,
+    CREDMARK_CONFIGURER.address
+  );
   await liquidityManager.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
 
   await modelNft.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);

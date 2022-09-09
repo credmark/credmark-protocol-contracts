@@ -12,9 +12,7 @@ describe("Modl.sol", () => {
     await setupUsers();
   });
 
-  beforeEach(async () => {});
-
-  it("MODL: totalSupply should initialize to 0", async () => {
+  it("Modl: totalSupply should initialize to 0", async () => {
     let totalSupply = await MODL.functions.totalSupply();
     expect(totalSupply.toString()).to.equal("0");
   });
