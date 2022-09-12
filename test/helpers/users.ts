@@ -1,4 +1,4 @@
-import { ethers, waffle } from 'hardhat';
+import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 let CREDMARK_DEPLOYER: SignerWithAddress;
@@ -20,26 +20,7 @@ let USERS: Array<SignerWithAddress>;
 let MOCK_GODMODE: SignerWithAddress;
 
 async function setupUsers() {
-    [
-        CREDMARK_DEPLOYER,
-        CREDMARK_MANAGER,
-        CREDMARK_TREASURY_MULTISIG,
-        CREDMARK_MODELER_TREASURY,
-        CREDMARK_MEMBER_TREASURY,
-        CREDMARK_CONFIGURER,
-        USER_ALICE,
-        USER_BRENT,
-        USER_CAMMY,
-        USER_DAVID,
-        HACKER_ZACH,
-        HACKER_YITZACK,
-        MOCK_GODMODE
-    ] = await ethers.getSigners();
-    USERS = [USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID];
-}
-
-export {
-    setupUsers,
+  [
     CREDMARK_DEPLOYER,
     CREDMARK_MANAGER,
     CREDMARK_TREASURY_MULTISIG,
@@ -52,6 +33,25 @@ export {
     USER_DAVID,
     HACKER_ZACH,
     HACKER_YITZACK,
-    USERS,
-    MOCK_GODMODE
+    MOCK_GODMODE,
+  ] = await ethers.getSigners();
+  USERS = [USER_ALICE, USER_BRENT, USER_CAMMY, USER_DAVID];
 }
+
+export {
+  setupUsers,
+  CREDMARK_DEPLOYER,
+  CREDMARK_MANAGER,
+  CREDMARK_TREASURY_MULTISIG,
+  CREDMARK_MODELER_TREASURY,
+  CREDMARK_MEMBER_TREASURY,
+  CREDMARK_CONFIGURER,
+  USER_ALICE,
+  USER_BRENT,
+  USER_CAMMY,
+  USER_DAVID,
+  HACKER_ZACH,
+  HACKER_YITZACK,
+  USERS,
+  MOCK_GODMODE,
+};

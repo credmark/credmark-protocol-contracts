@@ -1,29 +1,26 @@
-import { ethers, waffle } from "hardhat";
-import * as chai from "chai";
-chai.use(waffle.solidity);
-
-let expect = chai.expect;
+import { ethers } from 'hardhat';
 
 import {
-  setupProtocol,
-  MODL,
-  USDC,
   liquidityManager,
+  MODL,
+  setupProtocol,
   swapRouter,
-} from "./helpers/contracts";
+  USDC,
+} from './helpers/contracts';
+import { advanceAMonth, advanceAnHour, advanceAYear } from './helpers/time';
 import {
-  setupUsers,
+  CREDMARK_CONFIGURER,
   CREDMARK_MANAGER,
+  setupUsers,
   USER_ALICE,
   USER_BRENT,
   USER_CAMMY,
-  CREDMARK_CONFIGURER,
-} from "./helpers/users";
-import { advanceAnHour, advanceAMonth, advanceAYear } from "./helpers/time";
+} from './helpers/users';
 
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber } from "ethers";
-import { IUniswapV3Pool } from "../typechain";
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { expect } from 'chai';
+import { BigNumber } from 'ethers';
+import { IUniswapV3Pool } from '../typechain';
 
 function expectClose(value: number, expectedValue: number) {
   expect(value).to.greaterThanOrEqual(expectedValue * 0.98);
@@ -39,11 +36,11 @@ declare global {
 }
 
 Number.prototype.BNTokStr = function () {
-  return "" + this + "000000000000000000";
+  return '' + this + '000000000000000000';
 };
 
 String.prototype.TokValInt = function () {
-  if (this == "0") {
+  if (this == '0') {
     return 0;
   }
   return Number(this.slice(0, -18));
@@ -51,16 +48,16 @@ String.prototype.TokValInt = function () {
 let depositDiv: Number;
 let conversionMul: Number;
 
-let priceDiff = function (oldPrice: number, newPrice: number) {
+const priceDiff = function (oldPrice: number, newPrice: number) {
   return ((newPrice - oldPrice) / oldPrice) * 100;
 };
 
-describe("LiquidityManager.sol : setup", () => {
+describe('LiquidityManager.sol : setup', () => {
   beforeEach(async () => {
     await setupUsers();
   });
 
-  it("test ability to start with both random orientations", async () => {
+  it('test ability to start with both random orientations', async () => {
     let token0tested = false;
     let token1tested = false;
 
@@ -68,9 +65,9 @@ describe("LiquidityManager.sol : setup", () => {
       await setupProtocol();
       await liquidityManager.connect(CREDMARK_MANAGER).mint();
       await liquidityManager.connect(CREDMARK_MANAGER).start();
-      expect(await (await liquidityManager.started()).toString()).not.eq("0");
-      let uniswapV3Pool = (await ethers.getContractAt(
-        "contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool",
+      expect(await (await liquidityManager.started()).toString()).not.eq('0');
+      const uniswapV3Pool = (await ethers.getContractAt(
+        'contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool',
         (await liquidityManager.pool()).toString()
       )) as IUniswapV3Pool;
       if (MODL.address == (await uniswapV3Pool.token0())) {
@@ -80,27 +77,27 @@ describe("LiquidityManager.sol : setup", () => {
         token1tested = true;
       }
     }
-    expect(await (await liquidityManager.started()).toString()).not.eq("0");
+    expect(await (await liquidityManager.started()).toString()).not.eq('0');
   });
 
-  it("Check Setup reversion states", async () => {
+  it('Check Setup reversion states', async () => {
     await setupProtocol();
     await liquidityManager.connect(CREDMARK_MANAGER).mint();
 
-    expect(await (await liquidityManager.started()).toString()).eq("0");
+    expect(await (await liquidityManager.started()).toString()).eq('0');
     await expect(liquidityManager.connect(CREDMARK_MANAGER).start()).not
       .reverted;
-    expect(await (await liquidityManager.started()).toString()).not.eq("0");
+    expect(await (await liquidityManager.started()).toString()).not.eq('0');
     await expect(liquidityManager.start()).reverted;
-    await expect(liquidityManager.clean("0")).reverted;
+    await expect(liquidityManager.clean('0')).reverted;
     await USDC.connect(CREDMARK_MANAGER).transfer(
       liquidityManager.address,
-      "10000000000"
+      '10000000000'
     );
   });
 });
 
-describe("LiquidityManager.sol operation", () => {
+describe('LiquidityManager.sol operation', () => {
   let uniswapV3Pool: IUniswapV3Pool;
   before(async function () {
     await setupUsers();
@@ -108,15 +105,15 @@ describe("LiquidityManager.sol operation", () => {
 
     await USDC.connect(CREDMARK_MANAGER).transfer(
       USER_ALICE.address,
-      "1000000000000"
+      '1000000000000'
     );
     await USDC.connect(CREDMARK_MANAGER).transfer(
       USER_BRENT.address,
-      "1000000000000"
+      '1000000000000'
     );
     await USDC.connect(CREDMARK_MANAGER).transfer(
       USER_CAMMY.address,
-      "1000000000000"
+      '1000000000000'
     );
 
     advanceAnHour();
@@ -125,7 +122,7 @@ describe("LiquidityManager.sol operation", () => {
     await liquidityManager.connect(CREDMARK_MANAGER).start();
 
     uniswapV3Pool = (await ethers.getContractAt(
-      "contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool",
+      'contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool',
       (await liquidityManager.pool()).toString()
     )) as IUniswapV3Pool;
   });
@@ -145,18 +142,18 @@ describe("LiquidityManager.sol operation", () => {
     });
   }
   async function price() {
-    let slot0 = await uniswapV3Pool.slot0();
-    if (BigNumber.from("0x1000000000000000000000000").gt(slot0.sqrtPriceX96)) {
-      let x = BigNumber.from("0x1000000000000000000000000")
+    const slot0 = await uniswapV3Pool.slot0();
+    if (BigNumber.from('0x1000000000000000000000000').gt(slot0.sqrtPriceX96)) {
+      const x = BigNumber.from('0x1000000000000000000000000')
         .div(slot0.sqrtPriceX96)
         .toNumber();
-      let price = (1 / (x * x)) * 1000000 * 1000000;
+      const price = (1 / (x * x)) * 1000000 * 1000000;
       return price;
     }
-    let x = slot0.sqrtPriceX96
-      .div(BigNumber.from("0x1000000000000000000000000"))
+    const x = slot0.sqrtPriceX96
+      .div(BigNumber.from('0x1000000000000000000000000'))
       .toNumber();
-    let price = (x * x) / 1000000 / 1000000;
+    const price = (x * x) / 1000000 / 1000000;
     return price;
   }
 
@@ -175,13 +172,13 @@ describe("LiquidityManager.sol operation", () => {
     });
   }
 
-  it("Can swap", async () => {
-    await swapUSDC(USER_ALICE, "1");
-    let p0 = await price();
-    await swapUSDC(USER_ALICE, "999999000000");
-    await swapUSDC(USER_BRENT, "1000000000000");
-    await swapUSDC(USER_CAMMY, "1000000000000");
-    let p1 = await price();
+  it('Can swap', async () => {
+    await swapUSDC(USER_ALICE, '1');
+    const p0 = await price();
+    await swapUSDC(USER_ALICE, '999999000000');
+    await swapUSDC(USER_BRENT, '1000000000000');
+    await swapUSDC(USER_CAMMY, '1000000000000');
+    const p1 = await price();
     expect(await MODL.balanceOf(USER_ALICE.address)).to.not.eq(0);
 
     await swapModl(
@@ -197,12 +194,12 @@ describe("LiquidityManager.sol operation", () => {
       (await MODL.balanceOf(USER_CAMMY.address)).toString()
     );
 
-    let slot0 = await uniswapV3Pool.slot0();
+    const slot0 = await uniswapV3Pool.slot0();
     await liquidityManager
       .connect(CREDMARK_MANAGER)
       .clean(slot0.sqrtPriceX96.toString());
   });
-  it("Can pull liquidity after 2 years.", async () => {
+  it('Can pull liquidity after 2 years.', async () => {
     await expect(
       liquidityManager
         .connect(CREDMARK_CONFIGURER)

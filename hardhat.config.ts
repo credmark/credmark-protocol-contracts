@@ -1,11 +1,11 @@
-import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-etherscan";
-import "@nomiclabs/hardhat-waffle";
-import "@typechain/hardhat";
-import "dotenv/config";
-import "hardhat-gas-reporter";
-import { HardhatUserConfig } from "hardhat/types";
-import "solidity-coverage";
+import '@nomiclabs/hardhat-ethers';
+import '@nomiclabs/hardhat-etherscan';
+import '@nomiclabs/hardhat-waffle';
+import '@typechain/hardhat';
+import 'dotenv/config';
+import 'hardhat-gas-reporter';
+import { HardhatUserConfig } from 'hardhat/types';
+import 'solidity-coverage';
 
 let accounts;
 if (process.env.ACCOUNT_MNEMONIC) {
@@ -22,7 +22,7 @@ const CHAIN_IDS = {
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.17",
+    version: '0.8.17',
     settings: {
       optimizer: {
         enabled: true,
@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
         // do not include the metadata hash, since this is machine dependent
         // and we want all generated code to be deterministic
         // https://docs.soliditylang.org/en/v0.7.6/metadata.html
-        bytecodeHash: "none",
+        bytecodeHash: 'none',
       },
     },
   },
@@ -42,6 +42,9 @@ const config: HardhatUserConfig = {
       forking: {
         enabled: true,
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
+        blockNumber: process.env.PINNED_BLOCK_NUMBER
+          ? Number(process.env.PINNED_BLOCK_NUMBER)
+          : undefined,
       },
     },
     mainnet: {
@@ -67,7 +70,7 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     enabled: !!process.env.REPORT_GAS,
-    currency: "USD",
+    currency: 'USD',
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,
   },
   etherscan: {

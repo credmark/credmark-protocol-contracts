@@ -1,18 +1,17 @@
-import { ethers, waffle } from "hardhat";
-import { expect, use } from "chai";
-
-use(waffle.solidity);
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 import {
-  setupProtocol,
+  mockModlPriceOracle,
   MODL,
+  revenueTreasury,
+  rewardsIssuer,
+  setupProtocol,
   subscriptionBasic,
   subscriptionPro,
-  rewardsIssuer,
   subscriptionSuperPro,
-  mockModlPriceOracle,
-  revenueTreasury,
-} from "./helpers/contracts";
+} from './helpers/contracts';
+import { advanceAMonth, advanceAYear } from './helpers/time';
 import {
   CREDMARK_CONFIGURER,
   HACKER_ZACH,
@@ -22,8 +21,7 @@ import {
   USER_BRENT,
   USER_CAMMY,
   USER_DAVID,
-} from "./helpers/users";
-import { advanceAMonth, advanceAYear } from "./helpers/time";
+} from './helpers/users';
 
 declare global {
   interface Number {
@@ -34,17 +32,21 @@ declare global {
   }
 }
 
+// eslint-disable-next-line no-extend-native
 Number.prototype.BNTokStr = function () {
-  return "" + this + "000000000000000000";
+  return '' + this + '000000000000000000';
 };
 
+// eslint-disable-next-line no-extend-native
 String.prototype.TokValInt = function () {
-  if (this == "0") {
+  if (this === '0') {
     return 0;
   }
+
   return Number(this.slice(0, -18));
 };
-describe("Subscription.sol", () => {
+
+describe('Subscription.sol', () => {
   let abal: Number;
   let bbal: Number;
   let cbal: Number;
@@ -69,86 +71,80 @@ describe("Subscription.sol", () => {
       return Math.round(Number(num) / 100) * 100;
     }
     abal = roundNearest100(
-      (await (await MODL.balanceOf(USER_ALICE.address)).toString()).TokValInt()
+      (await MODL.balanceOf(USER_ALICE.address)).toString().TokValInt()
     );
     bbal = roundNearest100(
-      (await (await MODL.balanceOf(USER_BRENT.address)).toString()).TokValInt()
+      (await MODL.balanceOf(USER_BRENT.address)).toString().TokValInt()
     );
     cbal = roundNearest100(
-      (await (await MODL.balanceOf(USER_CAMMY.address)).toString()).TokValInt()
+      (await MODL.balanceOf(USER_CAMMY.address)).toString().TokValInt()
     );
 
     abRewards = roundNearest100(
-      await (await subscriptionBasic.rewards(USER_ALICE.address))
+      (await subscriptionBasic.rewards(USER_ALICE.address))
         .toString()
         .TokValInt()
     );
     bbRewards = roundNearest100(
-      await (await subscriptionBasic.rewards(USER_BRENT.address))
+      (await subscriptionBasic.rewards(USER_BRENT.address))
         .toString()
         .TokValInt()
     );
     cbRewards = roundNearest100(
-      await (await subscriptionBasic.rewards(USER_CAMMY.address))
+      (await subscriptionBasic.rewards(USER_CAMMY.address))
         .toString()
         .TokValInt()
     );
     apRewards = roundNearest100(
-      await (await subscriptionPro.rewards(USER_ALICE.address))
-        .toString()
-        .TokValInt()
+      (await subscriptionPro.rewards(USER_ALICE.address)).toString().TokValInt()
     );
     bpRewards = roundNearest100(
-      await (await subscriptionPro.rewards(USER_BRENT.address))
-        .toString()
-        .TokValInt()
+      (await subscriptionPro.rewards(USER_BRENT.address)).toString().TokValInt()
     );
     cpRewards = roundNearest100(
-      await (await subscriptionPro.rewards(USER_CAMMY.address))
-        .toString()
-        .TokValInt()
+      (await subscriptionPro.rewards(USER_CAMMY.address)).toString().TokValInt()
     );
     aspRewards = roundNearest100(
-      await (await subscriptionSuperPro.rewards(USER_ALICE.address))
+      (await subscriptionSuperPro.rewards(USER_ALICE.address))
         .toString()
         .TokValInt()
     );
     bspRewards = roundNearest100(
-      await (await subscriptionSuperPro.rewards(USER_BRENT.address))
+      (await subscriptionSuperPro.rewards(USER_BRENT.address))
         .toString()
         .TokValInt()
     );
     cspRewards = roundNearest100(
-      await (await subscriptionSuperPro.rewards(USER_CAMMY.address))
+      (await subscriptionSuperPro.rewards(USER_CAMMY.address))
         .toString()
         .TokValInt()
     );
     bTotalDep = roundNearest100(
-      await (await subscriptionBasic.totalDeposits()).toString().TokValInt()
+      (await subscriptionBasic.totalDeposits()).toString().TokValInt()
     );
     pTotalDep = roundNearest100(
-      await (await subscriptionPro.totalDeposits()).toString().TokValInt()
+      (await subscriptionPro.totalDeposits()).toString().TokValInt()
     );
     spTotalDep = roundNearest100(
-      await (await subscriptionSuperPro.totalDeposits()).toString().TokValInt()
+      (await subscriptionSuperPro.totalDeposits()).toString().TokValInt()
     );
     console.log(
-      new Date((await ethers.provider.getBlock("latest")).timestamp * 1000)
+      new Date((await ethers.provider.getBlock('latest')).timestamp * 1000)
     );
-    console.log("modl", abal, bbal, cbal);
+    console.log('modl', abal, bbal, cbal);
     console.log(
-      "basic",
+      'basic',
       bTotalDep,
-      "rewards:",
+      'rewards:',
       abRewards,
       bbRewards,
       cbRewards
     );
-    console.log("pro", pTotalDep, "rewards:", apRewards, bpRewards, cpRewards);
+    console.log('pro', pTotalDep, 'rewards:', apRewards, bpRewards, cpRewards);
     console.log(
-      "superpro",
+      'superpro',
       spTotalDep,
-      "rewards:",
+      'rewards:',
       aspRewards,
       bspRewards,
       cspRewards
@@ -163,206 +159,206 @@ describe("Subscription.sol", () => {
     await setupUsers();
     await MODL.connect(MOCK_GODMODE).mint(
       USER_ALICE.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(MOCK_GODMODE).mint(
       USER_BRENT.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(MOCK_GODMODE).mint(
       USER_CAMMY.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(MOCK_GODMODE).mint(
       USER_DAVID.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
 
     await MODL.connect(USER_ALICE).approve(
       subscriptionBasic.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(USER_ALICE).approve(
       subscriptionPro.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(USER_ALICE).approve(
       subscriptionSuperPro.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
 
     await MODL.connect(USER_BRENT).approve(
       subscriptionBasic.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(USER_BRENT).approve(
       subscriptionPro.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(USER_BRENT).approve(
       subscriptionSuperPro.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
 
     await MODL.connect(USER_CAMMY).approve(
       subscriptionBasic.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(USER_CAMMY).approve(
       subscriptionPro.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(USER_CAMMY).approve(
       subscriptionSuperPro.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
 
     await MODL.connect(USER_DAVID).approve(
       subscriptionBasic.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(USER_DAVID).approve(
       subscriptionPro.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await MODL.connect(USER_DAVID).approve(
       subscriptionSuperPro.address,
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
   });
 
-  it("Subscription: Can Deposit", async () => {
+  it('Subscription: Can Deposit', async () => {
     await expect(
       subscriptionBasic
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, "100000000000000000000")
+        .deposit(USER_ALICE.address, '100000000000000000000')
     ).not.reverted;
     await expect(
       subscriptionBasic
         .connect(HACKER_ZACH)
-        .deposit(HACKER_ZACH.address, "100000000000000000000")
+        .deposit(HACKER_ZACH.address, '100000000000000000000')
     ).reverted;
   });
 
-  it("Subscription: Deposit Math Works", async () => {
+  it('Subscription: Deposit Math Works', async () => {
     await subscriptionBasic
       .connect(USER_ALICE)
-      .deposit(USER_ALICE.address, "100000000000000000000");
+      .deposit(USER_ALICE.address, '100000000000000000000');
 
     expect(
       (await subscriptionBasic.deposits(USER_ALICE.address)).toString()
-    ).to.eq("100000000000000000000");
+    ).to.eq('100000000000000000000');
     expect(
       (await subscriptionBasic.deposits(USER_BRENT.address)).toString()
-    ).to.eq("0");
+    ).to.eq('0');
     expect(
       (await subscriptionBasic.deposits(USER_CAMMY.address)).toString()
-    ).to.eq("0");
+    ).to.eq('0');
 
     await subscriptionBasic
       .connect(USER_BRENT)
-      .deposit(USER_BRENT.address, "50000000000000000000");
+      .deposit(USER_BRENT.address, '50000000000000000000');
 
     expect(
       (await subscriptionBasic.deposits(USER_ALICE.address)).toString()
-    ).to.eq("100000000000000000000");
+    ).to.eq('100000000000000000000');
     expect(
       (await subscriptionBasic.deposits(USER_BRENT.address)).toString()
-    ).to.eq("50000000000000000000");
+    ).to.eq('50000000000000000000');
     expect(
       (await subscriptionBasic.deposits(USER_CAMMY.address)).toString()
-    ).to.eq("0");
+    ).to.eq('0');
 
     await subscriptionBasic
       .connect(USER_BRENT)
-      .deposit(USER_BRENT.address, "50000000000000000000");
+      .deposit(USER_BRENT.address, '50000000000000000000');
 
     expect(
       (await subscriptionBasic.deposits(USER_ALICE.address)).toString()
-    ).to.eq("100000000000000000000");
+    ).to.eq('100000000000000000000');
     expect(
       (await subscriptionBasic.deposits(USER_BRENT.address)).toString()
-    ).to.eq("100000000000000000000");
+    ).to.eq('100000000000000000000');
     expect(
       (await subscriptionBasic.deposits(USER_CAMMY.address)).toString()
-    ).to.eq("0");
+    ).to.eq('0');
   });
 
-  it("Subscription: Fee Math Works", async () => {
+  it('Subscription: Fee Math Works', async () => {
     await subscriptionPro
       .connect(USER_ALICE)
-      .deposit(USER_ALICE.address, "10000000000000000000000");
+      .deposit(USER_ALICE.address, '10000000000000000000000');
 
     await advanceAMonth();
 
-    expect(
-      await (await subscriptionPro.fees(USER_ALICE.address)).toString()
-    ).eq("500000000000000000000");
+    expect((await subscriptionPro.fees(USER_ALICE.address)).toString()).eq(
+      '500000000000000000000'
+    );
 
     await advanceAMonth();
 
-    expect(
-      await (await subscriptionPro.fees(USER_ALICE.address)).toString()
-    ).eq("1000000000000000000000");
+    expect((await subscriptionPro.fees(USER_ALICE.address)).toString()).eq(
+      '1000000000000000000000'
+    );
 
     await mockModlPriceOracle
       .connect(CREDMARK_CONFIGURER)
-      .configure({ price: "200000000", decimals: "8" });
+      .configure({ price: '200000000', decimals: '8' });
     await subscriptionPro.snapshot();
 
     await advanceAMonth();
 
     expect(
-      await (await subscriptionPro.fees(USER_ALICE.address))
+      (await subscriptionPro.fees(USER_ALICE.address))
         .toString()
         .substring(0, 4)
-    ).eq("1250");
+    ).eq('1250');
 
     await mockModlPriceOracle
       .connect(CREDMARK_CONFIGURER)
-      .configure({ price: "400000000", decimals: "8" });
+      .configure({ price: '400000000', decimals: '8' });
     await subscriptionPro.snapshot();
 
     await advanceAMonth();
 
     expect(
-      await (await subscriptionPro.fees(USER_ALICE.address))
+      (await subscriptionPro.fees(USER_ALICE.address))
         .toString()
         .substring(0, 4)
-    ).eq("1375");
+    ).eq('1375');
 
     await mockModlPriceOracle
       .connect(CREDMARK_CONFIGURER)
-      .configure({ price: "100000000", decimals: "8" });
+      .configure({ price: '100000000', decimals: '8' });
     await subscriptionPro.snapshot();
 
     await advanceAMonth();
 
     expect(
-      await (await subscriptionPro.fees(USER_ALICE.address))
+      (await subscriptionPro.fees(USER_ALICE.address))
         .toString()
         .substring(0, 4)
-    ).eq("1875");
+    ).eq('1875');
 
     await mockModlPriceOracle
       .connect(CREDMARK_CONFIGURER)
-      .configure({ price: "25000000", decimals: "8" });
+      .configure({ price: '25000000', decimals: '8' });
     await subscriptionPro.snapshot();
 
     await advanceAMonth();
 
     expect(
-      await (await subscriptionPro.fees(USER_ALICE.address))
+      (await subscriptionPro.fees(USER_ALICE.address))
         .toString()
         .substring(0, 4)
-    ).eq("2375");
+    ).eq('2375');
   });
 
-  it("Subscription: Can Exit", async () => {
+  it('Subscription: Can Exit', async () => {
     await expect(
       subscriptionBasic
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, "10000000000000000000000")
+        .deposit(USER_ALICE.address, '10000000000000000000000')
     ).not.reverted;
     await expect(subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address))
       .reverted;
@@ -371,35 +367,35 @@ describe("Subscription.sol", () => {
     await expect(
       subscriptionBasic.connect(HACKER_ZACH).exit(USER_ALICE.address)
     ).reverted;
-    expect((await MODL.balanceOf(USER_ALICE.address)).toString()).to.eq("0");
+    expect((await MODL.balanceOf(USER_ALICE.address)).toString()).to.eq('0');
     await subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address);
     expect((await MODL.balanceOf(USER_ALICE.address)).toString()).to.eq(
-      "10000000000000000000000"
+      '10000000000000000000000'
     );
     await expect(subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address))
       .reverted;
   });
 
-  it("Subscription: Collects Fees", async () => {
+  it('Subscription: Collects Fees', async () => {
     await expect(
       subscriptionPro
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, "10000000000000000000000")
+        .deposit(USER_ALICE.address, '10000000000000000000000')
     ).not.reverted;
     await advanceAMonth();
     await advanceAMonth();
     await expect(subscriptionPro.connect(USER_ALICE).exit(USER_ALICE.address))
       .not.reverted;
     expect((await MODL.balanceOf(revenueTreasury.address)).toString()).not.eq(
-      "0"
+      '0'
     );
   });
 
-  it("Subscription: Claims Rewards", async () => {
+  it('Subscription: Claims Rewards', async () => {
     await expect(
       subscriptionPro
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, "10000000000000000000000")
+        .deposit(USER_ALICE.address, '10000000000000000000000')
     ).not.reverted;
     await advanceAYear();
     await expect(subscriptionPro.connect(USER_ALICE).claim(USER_ALICE.address))
@@ -416,23 +412,23 @@ describe("Subscription.sol", () => {
     ).eq(249999);
   });
 
-  it("Subscription: Rewards Dilution Works", async () => {
+  it('Subscription: Rewards Dilution Works', async () => {
     await balances();
 
     await expect(
       subscriptionPro
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, "10000000000000000000000")
+        .deposit(USER_ALICE.address, '10000000000000000000000')
     ).not.reverted;
     await expect(
       subscriptionPro
         .connect(USER_BRENT)
-        .deposit(USER_BRENT.address, "10000000000000000000000")
+        .deposit(USER_BRENT.address, '10000000000000000000000')
     ).not.reverted;
     await expect(
       subscriptionSuperPro
         .connect(USER_CAMMY)
-        .deposit(USER_CAMMY.address, "10000000000000000000000")
+        .deposit(USER_CAMMY.address, '10000000000000000000000')
     ).not.reverted;
 
     await balances();
@@ -471,23 +467,23 @@ describe("Subscription.sol", () => {
     await balances();
   });
 
-  it("Subscription: Complex dilution", async () => {
+  it('Subscription: Complex dilution', async () => {
     await expect(
       subscriptionBasic
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, "10000000000000000000000")
+        .deposit(USER_ALICE.address, '10000000000000000000000')
     ).not.reverted;
     await expect(
       subscriptionSuperPro
         .connect(USER_BRENT)
-        .deposit(USER_BRENT.address, "10000000000000000000000")
+        .deposit(USER_BRENT.address, '10000000000000000000000')
     ).not.reverted;
     await advanceAYear();
     await balances();
     await expect(
       subscriptionBasic
         .connect(USER_CAMMY)
-        .deposit(USER_CAMMY.address, "10000000000000000000000")
+        .deposit(USER_CAMMY.address, '10000000000000000000000')
     ).not.reverted;
     await subscriptionSuperPro.connect(USER_BRENT).exit(USER_BRENT.address);
     await balances();

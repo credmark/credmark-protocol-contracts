@@ -1,4 +1,4 @@
-import { BigNumberish } from "ethers";
+import { BigNumberish } from 'ethers';
 
 export interface LiquidityManagerConfig {
   launchLiquidity: BigNumberish;
@@ -29,7 +29,7 @@ export interface RevenueTreasuryConfig {
 }
 
 export interface AllowanceConfig {
-  account:string;
+  account: string;
   amountPerAnnum: BigNumberish;
 }
 
