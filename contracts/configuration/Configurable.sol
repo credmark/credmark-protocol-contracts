@@ -6,15 +6,12 @@ import "./Permissioned.sol";
 abstract contract Configurable is Permissioned {
     bool internal _configured;
 
-    event Configured(bytes config);
-
     modifier configured() {
-        require(_configured, "CONFIGURED");
+        require(_configured, "C");
         _;
     }
 
     function _postConfiguration() internal configurer {
         _configured = true;
-        emit Configured(msg.data);
     }
 }

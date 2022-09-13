@@ -2,17 +2,14 @@
 pragma solidity ^0.8.17;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "../external/uniswap/v3-core/contracts/libraries/TickMath.sol";
-import "../external/uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
-import "../token/Modl.sol";
 import "../interfaces/ILiquidityManager.sol";
 import "../configuration/CLiquidityManager.sol";
 
@@ -45,50 +42,16 @@ contract LiquidityManager is
     uint160 sqrtPriceLimitSnap;
     uint256 sqrtPriceLimitSnapTimestamp;
 
-    function mint() external override nonReentrant manager {
-        require(started == 0, "LiquidityManager:STARTED");
-        require(
-            launchLiquidity > 0,
-            "LiquidityManager:VALUE_ERROR:launchLiquidity"
-        );
-        require(
-            modl.balanceOf(address(this)) == 0,
-            "LiquidityManager:NONZERO_BALANCE"
-        );
-        require(
-            modl.hasRole(keccak256("MINTER_ROLE"), address(this)),
-            "LiquidityManager:UNAUTHORIZED"
-        );
-
-        modl.mint(address(this), launchLiquidity);
-        require(
-            modl.balanceOf(address(this)) == launchLiquidity,
-            "LiquidityManager:VALUE_ERROR:launchLiquidity"
-        );
-
-        modl.renounceRole(keccak256("MINTER_ROLE"), address(this));
-        require(
-            !modl.hasRole(keccak256("MINTER_ROLE"), address(this)),
-            "LiquidityManager:AUTHORIZED"
-        );
-    }
-
     function start() external override nonReentrant manager {
-        require(started == 0, "LiquidityManager:STARTED");
-        require(
-            modl.balanceOf(address(this)) > 0,
-            "LiquidityManager:ZERO_BALANCE"
-        );
+        require(started == 0, "S");
+        require(modl.balanceOf(address(this)) > 0, "ZB");
 
         address poolAddress = FACT.createPool(
             address(modl),
             address(usdc),
             POOL_FEE
         );
-        require(
-            poolAddress != address(0),
-            "LiquidityManager:VALUE_ERROR:poolAddress"
-        );
+        require(poolAddress != address(0), "VE:poolAddress");
 
         pool = IUniswapV3Pool(poolAddress);
         address token0 = pool.token0();
@@ -103,11 +66,7 @@ contract LiquidityManager is
 
         pool.initialize(TickMath.getSqrtRatioAtTick(tickInit));
 
-        TransferHelper.safeApprove(
-            address(modl),
-            address(NFPM),
-            modl.balanceOf(address(this))
-        );
+        modl.approve(address(NFPM), modl.balanceOf(address(this)));
 
         (uint256 tokenId, uint128 liquidity, , ) = NFPM.mint(
             INonfungiblePositionManager.MintParams({
@@ -137,12 +96,12 @@ contract LiquidityManager is
         nonReentrant
         manager
     {
-        require(started != 0, "LiquidityManager:NOT_STARTED");
+        require(started != 0, "NS");
 
         (uint160 sqrtPriceLimitX96Check, , , , , , ) = pool.slot0();
         require(
             sqrtPriceLimitX96Check == sqrtPriceLimitX96_,
-            "LiquidityManager:VALUE_ERROR:sqrtPriceLimitX96Check"
+            "VE:sqrtPriceLimitX96Check"
         );
 
         NFPM.collect(
@@ -155,8 +114,7 @@ contract LiquidityManager is
         );
 
         uint256 usdcBalance = usdc.balanceOf(address(this));
-
-        TransferHelper.safeApprove(address(usdc), address(SWAP), usdcBalance);
+        require(usdc.approve(address(SWAP), usdcBalance));
 
         SWAP.exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
@@ -172,19 +130,14 @@ contract LiquidityManager is
         );
 
         uint256 modlBalance = modl.balanceOf(address(this));
-        bool modlTransferSuccess = modl.transfer(revenueTreasury, modlBalance);
+        require(modl.transfer(revenueTreasury, modlBalance));
 
         emit Clean(sqrtPriceLimitX96_, usdcBalance, modlBalance);
-
-        require(modlTransferSuccess, "LiquidityManager:TRANSFER_FAILED");
     }
 
-    function transferPosition(address to) external configurer {
-        require(started != 0, "LiquidityManager:NOT_STARTED");
-        require(
-            block.timestamp > started + lockup,
-            "LiquidityManager:TIMELOCK"
-        );
-        NFPM.transferFrom(address(this), to, liquidityTokenId);
+    function transferPosition() external configurer {
+        require(started != 0, "NS");
+        require(block.timestamp > started + lockup, "TL");
+        NFPM.transferFrom(address(this), revenueTreasury, liquidityTokenId);
     }
 }

@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/**
+    @title ShareAccumulator
+    @author Credmark
+    @notice This contract tracks the average dilutive share an account has experienced
+    @dev This contract should be inherited by contracts that accumulate a linear rolling 
+    price that differ's per account, as denoted by an address. This allows for second 
+    by second cost averaging per account.
+**/
+
 abstract contract ShareAccumulator {
     uint256 internal constant R = 10**18;
     address internal constant GLOBALS = address(0xfeed);

@@ -19,7 +19,6 @@ abstract contract CManagedPriceOracle is Configurable {
         token = params.tokenAddress;
         config = Configuration(params.initialPrice, params.initialDecimals);
         _configured = true;
-        emit Configured(msg.data);
     }
 
     function configure(Configuration memory newConfig) external {

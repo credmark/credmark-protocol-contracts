@@ -19,9 +19,7 @@ contract CSubscription is Configurable {
         uint256 lockup;
         uint256 fee;
         uint256 multiplier;
-        bool subscribable;
         uint256 floorPrice;
-        uint256 ceilingPrice;
         address treasury;
     }
 

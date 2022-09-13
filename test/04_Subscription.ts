@@ -197,19 +197,14 @@ describe('Subscription.sol', () => {
     await expect(
       subscriptionBasic
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, (100).toBN18())
+        .deposit((100).toBN18())
     ).not.reverted;
-    await expect(
-      subscriptionBasic
-        .connect(HACKER_ZACH)
-        .deposit(HACKER_ZACH.address, (100).toBN18())
-    ).reverted;
   });
 
   it('Subscription: Deposit Math Works', async () => {
     await subscriptionBasic
       .connect(USER_ALICE)
-      .deposit(USER_ALICE.address, (100).toBN18());
+      .deposit((100).toBN18());
 
     expect(await subscriptionBasic.deposits(USER_ALICE.address)).to.eq(
       (100).toBN18()
@@ -223,7 +218,7 @@ describe('Subscription.sol', () => {
 
     await subscriptionBasic
       .connect(USER_BRENT)
-      .deposit(USER_BRENT.address, (50).toBN18());
+      .deposit((50).toBN18());
 
     expect(await subscriptionBasic.deposits(USER_ALICE.address)).to.eq(
       (100).toBN18()
@@ -237,7 +232,7 @@ describe('Subscription.sol', () => {
 
     await subscriptionBasic
       .connect(USER_BRENT)
-      .deposit(USER_BRENT.address, (50).toBN18());
+      .deposit((50).toBN18());
 
     expect(
       (await subscriptionBasic.deposits(USER_ALICE.address)).toString()
@@ -253,7 +248,7 @@ describe('Subscription.sol', () => {
   it('Subscription: Fee Math Works', async () => {
     await subscriptionPro
       .connect(USER_ALICE)
-      .deposit(USER_ALICE.address, (10_000).toBN18());
+      .deposit((10_000).toBN18());
 
     await advanceAMonth();
 
@@ -320,21 +315,21 @@ describe('Subscription.sol', () => {
     await expect(
       subscriptionBasic
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, (10_000).toBN18())
+        .deposit((10_000).toBN18())
     ).not.reverted;
-    await expect(subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address))
+    await expect(subscriptionBasic.connect(USER_ALICE).exit())
       .reverted;
     await advanceAMonth();
 
     await expect(
-      subscriptionBasic.connect(HACKER_ZACH).exit(USER_ALICE.address)
+      subscriptionBasic.connect(HACKER_ZACH).exit()
     ).reverted;
     expect((await MODL.balanceOf(USER_ALICE.address)).toString()).to.eq('0');
-    await subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address);
+    await subscriptionBasic.connect(USER_ALICE).exit();
     expect((await MODL.balanceOf(USER_ALICE.address)).toString()).to.eq(
       (10_000).toBN18()
     );
-    await expect(subscriptionBasic.connect(USER_ALICE).exit(USER_ALICE.address))
+    await expect(subscriptionBasic.connect(USER_ALICE).exit())
       .reverted;
   });
 
@@ -342,11 +337,11 @@ describe('Subscription.sol', () => {
     await expect(
       subscriptionPro
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, (10_000).toBN18())
+        .deposit((10_000).toBN18())
     ).not.reverted;
     await advanceAMonth();
     await advanceAMonth();
-    await expect(subscriptionPro.connect(USER_ALICE).exit(USER_ALICE.address))
+    await expect(subscriptionPro.connect(USER_ALICE).exit())
       .not.reverted;
     expect((await MODL.balanceOf(revenueTreasury.address)).toString()).not.eq(
       '0'
@@ -357,10 +352,10 @@ describe('Subscription.sol', () => {
     await expect(
       subscriptionPro
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, (10_000).toBN18())
+        .deposit((10_000).toBN18())
     ).not.reverted;
     await advanceAYear();
-    await expect(subscriptionPro.connect(USER_ALICE).claim(USER_ALICE.address))
+    await expect(subscriptionPro.connect(USER_ALICE).claim())
       .not.reverted;
 
     expect((await MODL.balanceOf(rewardsIssuer.address)).scaledInt(18)).eq(0);
@@ -378,26 +373,26 @@ describe('Subscription.sol', () => {
     await expect(
       subscriptionPro
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, (10_000).toBN18())
+        .deposit((10_000).toBN18())
     ).not.reverted;
     await expect(
       subscriptionPro
         .connect(USER_BRENT)
-        .deposit(USER_BRENT.address, (10_000).toBN18())
+        .deposit((10_000).toBN18())
     ).not.reverted;
     await expect(
       subscriptionSuperPro
         .connect(USER_CAMMY)
-        .deposit(USER_CAMMY.address, (10_000).toBN18())
+        .deposit( (10_000).toBN18())
     ).not.reverted;
 
     await balances();
     await advanceAYear();
     await balances();
 
-    await subscriptionPro.connect(USER_ALICE).claim(USER_ALICE.address);
-    await subscriptionPro.connect(USER_BRENT).claim(USER_BRENT.address);
-    await subscriptionSuperPro.connect(USER_CAMMY).claim(USER_CAMMY.address);
+    await subscriptionPro.connect(USER_ALICE).claim();
+    await subscriptionPro.connect(USER_BRENT).claim();
+    await subscriptionSuperPro.connect(USER_CAMMY).claim();
     await balances();
 
     expect(abal).eq(bbal);
@@ -405,25 +400,25 @@ describe('Subscription.sol', () => {
 
     await advanceAYear();
     await balances();
-    await subscriptionPro.connect(USER_ALICE).claim(USER_ALICE.address);
-    await subscriptionPro.connect(USER_BRENT).claim(USER_BRENT.address);
-    await subscriptionSuperPro.connect(USER_CAMMY).claim(USER_CAMMY.address);
+    await subscriptionPro.connect(USER_ALICE).claim();
+    await subscriptionPro.connect(USER_BRENT).claim();
+    await subscriptionSuperPro.connect(USER_CAMMY).claim();
 
     await balances();
     expect(abal).eq(bbal);
     expect(Number(abal) * 2).eq(cbal);
 
-    await subscriptionPro.connect(USER_ALICE).exit(USER_ALICE.address);
-    await expect(subscriptionPro.connect(USER_ALICE).claim(USER_ALICE.address))
+    await subscriptionPro.connect(USER_ALICE).exit();
+    await expect(subscriptionPro.connect(USER_ALICE).claim())
       .not.reverted;
     await balances();
 
     await advanceAYear();
     await balances();
-    await expect(subscriptionPro.connect(USER_ALICE).claim(USER_ALICE.address))
+    await expect(subscriptionPro.connect(USER_ALICE).claim())
       .reverted;
-    await subscriptionPro.connect(USER_BRENT).claim(USER_BRENT.address);
-    await subscriptionSuperPro.connect(USER_CAMMY).claim(USER_CAMMY.address);
+    await subscriptionPro.connect(USER_BRENT).claim();
+    await subscriptionSuperPro.connect(USER_CAMMY).claim();
     await balances();
   });
 
@@ -431,28 +426,28 @@ describe('Subscription.sol', () => {
     await expect(
       subscriptionBasic
         .connect(USER_ALICE)
-        .deposit(USER_ALICE.address, (10_000).toBN18())
+        .deposit((10_000).toBN18())
     ).not.reverted;
     await expect(
       subscriptionSuperPro
         .connect(USER_BRENT)
-        .deposit(USER_BRENT.address, (10_000).toBN18())
+        .deposit((10_000).toBN18())
     ).not.reverted;
     await advanceAYear();
     await balances();
     await expect(
       subscriptionBasic
         .connect(USER_CAMMY)
-        .deposit(USER_CAMMY.address, (10_000).toBN18())
+        .deposit((10_000).toBN18())
     ).not.reverted;
-    await subscriptionSuperPro.connect(USER_BRENT).exit(USER_BRENT.address);
+    await subscriptionSuperPro.connect(USER_BRENT).exit();
     await balances();
     await advanceAYear();
     await expect(
-      subscriptionBasic.connect(USER_ALICE).claim(USER_ALICE.address)
+      subscriptionBasic.connect(USER_ALICE).claim()
     ).not.reverted;
     await expect(
-      subscriptionBasic.connect(USER_CAMMY).claim(USER_CAMMY.address)
+      subscriptionBasic.connect(USER_CAMMY).claim()
     ).not.reverted;
 
     await balances();

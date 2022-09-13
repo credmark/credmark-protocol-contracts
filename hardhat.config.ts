@@ -6,7 +6,7 @@ import 'dotenv/config';
 import 'hardhat-gas-reporter';
 import { HardhatUserConfig } from 'hardhat/types';
 import 'solidity-coverage';
-
+import 'hardhat-contract-sizer';
 let accounts;
 if (process.env.ACCOUNT_MNEMONIC) {
   accounts = {
@@ -26,7 +26,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 800,
+        runs: 1000,
       },
       metadata: {
         // do not include the metadata hash, since this is machine dependent
@@ -76,6 +76,12 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
+  }
 };
 
 export default config;

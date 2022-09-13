@@ -11,11 +11,11 @@ interface ISubscription {
         uint256 amount
     );
 
-    function deposit(address account, uint256 amount) external;
+    function deposit(uint256 amount) external;
 
-    function exit(address account) external;
+    function exit() external;
 
-    function claim(address account) external;
+    function claim() external;
 
     function liquidate(address account) external;
 

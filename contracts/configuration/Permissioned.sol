@@ -2,13 +2,10 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 
 abstract contract Permissioned is AccessControl {
     bytes32 public constant CONFIGURER_ROLE = keccak256("CONFIGURER");
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER");
-    bytes32 public constant TRUSTED_CONTRACT_ROLE =
-        keccak256("TRUSTED_CONTRACT_ROLE");
 
     modifier configurer() {
         _checkRole(CONFIGURER_ROLE);
@@ -21,15 +18,9 @@ abstract contract Permissioned is AccessControl {
     }
 
     modifier managerOr(address account) {
-        require(
-            msg.sender == account || hasRole(MANAGER_ROLE, msg.sender),
-            "UNAUTHORIZED"
-        );
-        _;
-    }
-
-    modifier trustedContract() {
-        _checkRole(TRUSTED_CONTRACT_ROLE);
+        if (msg.sender != account) {
+            _checkRole(MANAGER_ROLE);
+        }
         _;
     }
 

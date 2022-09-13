@@ -310,9 +310,7 @@ async function configure() {
     lockup: '86400',
     fee: '0',
     multiplier: '100',
-    subscribable: true,
     floorPrice: '100000000',
-    ceilingPrice: '999999999999999',
     treasury: revenueTreasury.address,
     oracleAddress: mockModlPriceOracle.address,
   });
@@ -321,9 +319,7 @@ async function configure() {
     lockup: '2592000',
     fee: '500000000000000000000',
     multiplier: '200',
-    subscribable: true,
     floorPrice: '100000000',
-    ceilingPrice: '999999999999999',
     treasury: revenueTreasury.address,
     oracleAddress: mockModlPriceOracle.address,
   });
@@ -332,9 +328,7 @@ async function configure() {
     lockup: '2592000',
     fee: '500000000000000000000',
     multiplier: '100',
-    subscribable: true,
     floorPrice: '100000000',
-    ceilingPrice: '100000001',
     treasury: revenueTreasury.address,
     oracleAddress: mockUsdcPriceOracle.address,
   });
@@ -343,9 +337,7 @@ async function configure() {
     lockup: '2592000',
     fee: '5000000000000000000000',
     multiplier: '400',
-    subscribable: true,
     floorPrice: '100000000',
-    ceilingPrice: '999999999999999',
     treasury: revenueTreasury.address,
     oracleAddress: mockModlPriceOracle.address,
   });
@@ -354,9 +346,7 @@ async function configure() {
     lockup: '2592000',
     fee: '2500000000000000000000',
     multiplier: '100',
-    subscribable: true,
     floorPrice: '100000000',
-    ceilingPrice: '999999999999999',
     treasury: revenueTreasury.address,
     oracleAddress: mockModlPriceOracle.address,
   });

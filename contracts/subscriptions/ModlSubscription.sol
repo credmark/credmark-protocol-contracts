@@ -11,14 +11,14 @@ contract ModlSubscription is GenericSubscription {
                     ISubscriptionRewardsIssuer(params.rewardsIssuerAddress)
                         .token()
                 ),
-            "ModlSubscription:VALUE_ERROR:tokenAddress"
+            "VE:tokenAddress"
         );
     }
 
     event Rebalanced(address indexed account, uint256 amount);
 
-    function rebalance(address account) external managerOr(account) configured {
-        _rebalance(account);
+    function rebalance() external {
+        _rebalance(msg.sender);
     }
 
     function _rebalance(address account) internal {

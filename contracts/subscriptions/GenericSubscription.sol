@@ -29,76 +29,41 @@ contract GenericSubscription is
 
     uint256 constant MONTH_SEC = (30 * 24 * 60 * 60);
 
-    modifier canSubscribe() {
-        require(
-            config.subscribable || hasRole(MANAGER_ROLE, msg.sender),
-            "Subscription:UNAUTHORIZED"
-        );
-        _;
-    }
-
-    modifier isUnlocked(address account) {
-        require(
-            Time.now_u256() > lockupExpiration[account],
-            "Subscription:TIMELOCK"
-        );
-        _;
-    }
-
-    function deposit(address account, uint256 amount)
-        external
-        override
-        canSubscribe
-        configured
-    {
-        _deposit(account, amount);
+    function deposit(uint256 amount) external override configured {
+        _deposit(msg.sender, amount);
 
         token.safeTransferFrom(msg.sender, address(this), amount);
 
-        require(amount > 0, "Subscription:ZERO_BALANCE");
+        require(amount > 0, "ZB");
     }
 
-    function exit(address account)
-        external
-        override
-        isUnlocked(account)
-        managerOr(account)
-        configured
-    {
-        (uint256 amount, uint256 fee) = _exit(account);
+    function exit() external override {
+        require(Time.now_u256() > lockupExpiration[msg.sender], "TL");
+        (uint256 amount, uint256 fee) = _exit(msg.sender);
 
         if (amount > 0) {
-            token.safeTransfer(account, amount);
+            token.safeTransfer(msg.sender, amount);
         }
 
         if (fee > 0) {
             token.safeTransfer(config.treasury, fee);
         }
 
-        require(amount > 0 || fee > 0, "Subscription:ZERO_BALANCE");
-        require(
-            config.treasury != address(0),
-            "Subscription:VALUE_ERROR:treasury"
-        );
+        require(amount > 0 || fee > 0, "ZB");
     }
 
-    function claim(address account)
-        external
-        override
-        managerOr(account)
-        configured
-    {
-        uint256 claimAmount = _claim(account);
-        token.safeTransfer(account, claimAmount);
+    function claim() external override {
+        uint256 amount = _claim(msg.sender);
+        IERC20(rewardsIssuer.token()).safeTransfer(msg.sender, amount);
 
-        require(claimAmount > 0, "Subscription:ZERO_BALANCE");
+        require(amount > 0, "ZB");
     }
 
-    function liquidate(address account) external override configured {
-        uint256 liquidationAmount = _liquidate(account);
-        token.safeTransfer(config.treasury, liquidationAmount);
+    function liquidate(address account) external override {
+        uint256 amount = _liquidate(account);
+        token.safeTransfer(config.treasury, amount);
 
-        require(liquidationAmount > 0, "Subscription:ZERO_BALANCE");
+        require(amount > 0, "ZB");
     }
 
     function deposits(address account) public view override returns (uint256) {
@@ -133,21 +98,6 @@ contract GenericSubscription is
         return share[GLOBALS];
     }
 
-    function clampedPrice()
-        public
-        view
-        returns (uint256 price, uint8 decimals)
-    {
-        price = IPriceOracle(config.oracleAddress).price();
-        decimals = IPriceOracle(config.oracleAddress).decimals();
-        if (price < config.floorPrice) {
-            price = config.floorPrice;
-        }
-        if (price > config.ceilingPrice && config.ceilingPrice != 0) {
-            price = config.ceilingPrice;
-        }
-    }
-
     function _deposit(address account, uint256 amount)
         internal
         returns (uint256)
@@ -171,7 +121,7 @@ contract GenericSubscription is
         returns (uint256 amount, uint256 fee)
     {
         amount = deposits(account);
-        fee = min(amount, fees(account));
+        fee = Time.min(amount, fees(account));
         amount -= fee;
 
         _accumulate(rewardsIssuer.issue());
@@ -197,28 +147,23 @@ contract GenericSubscription is
         virtual
         returns (uint256 amount)
     {
-        require(!solvent(account), "Subscription:VALUE_ERROR:solvent");
+        require(!solvent(account), "VE:solvent");
         (, amount) = _exit(account);
 
         emit Liquidate(account, msg.sender, amount);
     }
 
     function snapshot() public {
-        (uint256 price, uint8 decimals) = clampedPrice();
-
-        uint256 shares = (share[GLOBALS] * price * config.multiplier) /
-            (10**decimals);
-
-        if (rewardsIssuer.getShares(address(this)) != shares) {
-            rewardsIssuer.setShares(shares);
+        uint256 price = IPriceOracle(config.oracleAddress).price();
+        if (price < config.floorPrice) {
+            price = config.floorPrice;
         }
+
+        uint256 shares = (share[GLOBALS] * price * config.multiplier) / (10**8);
+        rewardsIssuer.setShares(shares);
 
         if (price != fprice) {
             setPrice(price);
         }
-    }
-
-    function min(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a <= b ? a : b;
     }
 }

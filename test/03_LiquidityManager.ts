@@ -11,6 +11,7 @@ import { advanceAMonth, advanceAnHour, advanceAYear } from './helpers/time';
 import {
   CREDMARK_CONFIGURER,
   CREDMARK_MANAGER,
+  MOCK_GODMODE,
   setupUsers,
   USER_ALICE,
   USER_BRENT,
@@ -20,7 +21,7 @@ import {
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
-import { IUniswapV3Pool } from '../typechain';
+import { IUniswapV3Pool, Modl } from '../typechain';
 
 function expectClose(value: number, expectedValue: number) {
   expect(value).to.greaterThanOrEqual(expectedValue * 0.98);
@@ -63,7 +64,7 @@ describe('LiquidityManager.sol : setup', () => {
 
     while (!token0tested || !token1tested) {
       await setupProtocol();
-      await liquidityManager.connect(CREDMARK_MANAGER).mint();
+      await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, "7500000000000000000000000");
       await liquidityManager.connect(CREDMARK_MANAGER).start();
       expect(await (await liquidityManager.started()).toString()).not.eq('0');
       const uniswapV3Pool = (await ethers.getContractAt(
@@ -82,7 +83,7 @@ describe('LiquidityManager.sol : setup', () => {
 
   it('Check Setup reversion states', async () => {
     await setupProtocol();
-    await liquidityManager.connect(CREDMARK_MANAGER).mint();
+    await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, "7500000000000000000000000");
 
     expect(await (await liquidityManager.started()).toString()).eq('0');
     await expect(liquidityManager.connect(CREDMARK_MANAGER).start()).not
@@ -117,8 +118,7 @@ describe('LiquidityManager.sol operation', () => {
     );
 
     advanceAnHour();
-
-    await liquidityManager.connect(CREDMARK_MANAGER).mint();
+    await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, "7500000000000000000000000");
     await liquidityManager.connect(CREDMARK_MANAGER).start();
 
     uniswapV3Pool = (await ethers.getContractAt(
@@ -203,7 +203,7 @@ describe('LiquidityManager.sol operation', () => {
     await expect(
       liquidityManager
         .connect(CREDMARK_CONFIGURER)
-        .transferPosition(CREDMARK_CONFIGURER.address)
+        .transferPosition()
     ).reverted;
     await advanceAYear();
     await advanceAYear();
@@ -211,7 +211,7 @@ describe('LiquidityManager.sol operation', () => {
     await expect(
       liquidityManager
         .connect(CREDMARK_CONFIGURER)
-        .transferPosition(CREDMARK_CONFIGURER.address)
+        .transferPosition()
     ).not.reverted;
   });
 });
