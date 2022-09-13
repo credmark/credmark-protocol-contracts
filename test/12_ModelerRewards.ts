@@ -16,7 +16,10 @@ import {
   MOCK_GODMODE,
   USER_ALICE,
   USER_BRENT,
+  USER_CAMMY,
 } from './helpers/users';
+
+import './helpers/bigNumber';
 
 describe('Credmark Model NFT Rewards', () => {
   let merkleTree: MerkleTree;
@@ -60,8 +63,9 @@ describe('Credmark Model NFT Rewards', () => {
     await setupProtocol();
     await MODL.connect(MOCK_GODMODE).mint(
       modelNftRewards.address,
-      BigNumber.from(100).mul(1e6).mul(BigNumber.from(10).pow(18))
+      (100_000_000).toBN18()
     );
+
     merkleTree = new MerkleTree(
       leaves.map((leaf) => encodeLeaf(leaf)),
       ethers.utils.keccak256,
@@ -75,12 +79,12 @@ describe('Credmark Model NFT Rewards', () => {
     });
   });
 
-  describe('#setMerkleRoot', () => {
+  describe('#root', () => {
     it('should allow setting root', async () => {
       const root = merkleTree.getHexRoot();
-      await modelNftRewards.connect(CREDMARK_MANAGER).setMerkleRoot(root);
+      await modelNftRewards.connect(CREDMARK_MANAGER).appendRoot(root, '');
 
-      const newRoot = await modelNftRewards.merkleRoot();
+      const newRoot = (await modelNftRewards.merkles(0)).root;
       expect(newRoot).to.equal(root);
     });
 
@@ -88,18 +92,8 @@ describe('Credmark Model NFT Rewards', () => {
       await expect(
         modelNftRewards
           .connect(HACKER_ZACH)
-          .setMerkleRoot(merkleTree.getHexRoot())
+          .appendRoot(merkleTree.getHexRoot(), '')
       ).to.be.reverted;
-    });
-
-    it('should fail on setting root more than once', async () => {
-      const root = merkleTree.getHexRoot();
-      await modelNftRewards.connect(CREDMARK_MANAGER).setMerkleRoot(root);
-      await expect(
-        modelNftRewards
-          .connect(CREDMARK_MANAGER)
-          .setMerkleRoot(merkleTree.getHexRoot())
-      ).to.be.revertedWith('Root already set');
     });
   });
 
@@ -125,27 +119,22 @@ describe('Credmark Model NFT Rewards', () => {
         .connect(CREDMARK_MANAGER)
         .safeMint(USER_BRENT.address, 'slug 6'); // 5
 
-      await expect(
-        modelNft
-          .connect(CREDMARK_MANAGER)
-          .safeMint(USER_BRENT.address, 'slug 1')
-      ).to.be.reverted;
-
       await modelNftRewards
         .connect(CREDMARK_MANAGER)
-        .setMerkleRoot(merkleTree.getHexRoot());
+        .appendRoot(merkleTree.getHexRoot(), '');
 
       for (const leaf of leaves) {
         const tokenOwner = await modelNft.ownerOf(leaf.tokenId);
         await expect(
-          modelNftRewards.claimRewards(
-            leaf.tokenId,
-            leaf.amount,
-            merkleTree.getHexProof(encodeLeaf(leaf))
-          )
+          modelNftRewards.claim({
+            index: 0,
+            tokenId: leaf.tokenId,
+            amount: leaf.amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+          })
         )
           .to.emit(modelNftRewards, 'RewardsClaimed')
-          .withArgs(tokenOwner, leaf.amount);
+          .withArgs(0, leaf.tokenId, tokenOwner, leaf.amount);
       }
     });
 
@@ -156,43 +145,44 @@ describe('Credmark Model NFT Rewards', () => {
 
       await modelNftRewards
         .connect(CREDMARK_MANAGER)
-        .setMerkleRoot(merkleTree.getHexRoot());
+        .appendRoot(merkleTree.getHexRoot(), '');
 
       const leaf = leaves[0];
+      const tokenOwner = await modelNft.ownerOf(leaf.tokenId);
       await expect(
-        modelNftRewards.claimRewards(
-          leaf.tokenId,
-          leaf.amount,
-          merkleTree.getHexProof(encodeLeaf(leaf))
-        )
+        modelNftRewards.claim({
+          index: 0,
+          tokenId: leaf.tokenId,
+          amount: leaf.amount,
+          merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+        })
       )
         .to.emit(modelNftRewards, 'RewardsClaimed')
-        .withArgs(USER_ALICE.address, leaf.amount);
+        .withArgs(0, leaf.tokenId, tokenOwner, leaf.amount);
 
       await expect(
-        modelNftRewards.claimRewards(
-          leaf.tokenId,
-          leaf.amount,
-          merkleTree.getHexProof(encodeLeaf(leaf))
-        )
-      )
-        .to.emit(modelNftRewards, 'RewardsClaimed')
-        .withArgs(USER_ALICE.address, BigNumber.from(0));
+        modelNftRewards.claim({
+          index: 0,
+          tokenId: leaf.tokenId,
+          amount: leaf.amount,
+          merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+        })
+      ).to.be.reverted;
     });
 
     it('should fail to claim rewards for unminted nft', async () => {
-      await setupProtocol();
       await modelNftRewards
         .connect(CREDMARK_MANAGER)
-        .setMerkleRoot(merkleTree.getHexRoot());
+        .appendRoot(merkleTree.getHexRoot(), '');
 
       const leaf = leaves[0];
       await expect(
-        modelNftRewards.claimRewards(
-          leaf.tokenId,
-          leaf.amount,
-          merkleTree.getHexProof(encodeLeaf(leaf))
-        )
+        modelNftRewards.claim({
+          index: 0,
+          tokenId: leaf.tokenId,
+          amount: leaf.amount,
+          merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+        })
       ).to.be.revertedWith('ERC721: invalid token ID');
     });
 
@@ -203,26 +193,28 @@ describe('Credmark Model NFT Rewards', () => {
 
       await modelNftRewards
         .connect(CREDMARK_MANAGER)
-        .setMerkleRoot(merkleTree.getHexRoot());
+        .appendRoot(merkleTree.getHexRoot(), '');
 
       const leaf = leaves[0];
       await expect(
-        modelNftRewards.claimRewards(
-          leaf.tokenId,
-          leaf.amount.add(1),
-          merkleTree.getHexProof(encodeLeaf(leaf))
-        )
-      ).to.be.revertedWith('Invalid proof');
+        modelNftRewards.claim({
+          index: 0,
+          tokenId: leaf.tokenId,
+          amount: leaf.amount.add(1),
+          merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+        })
+      ).to.be.revertedWith('ModelNftRewards:INVALID_PROOF');
 
       await expect(
-        modelNftRewards.claimRewards(
-          leaf.tokenId,
-          leaf.amount,
-          merkleTree.getHexProof(
+        modelNftRewards.claim({
+          index: 0,
+          tokenId: leaf.tokenId,
+          amount: leaf.amount,
+          merkleProof: merkleTree.getHexProof(
             encodeLeaf({ tokenId: leaf.tokenId, amount: leaf.amount.add(1) })
-          )
-        )
-      ).to.be.revertedWith('Invalid proof');
+          ),
+        })
+      ).to.be.revertedWith('ModelNftRewards:INVALID_PROOF');
     });
 
     it('should reward to owner of nft only', async () => {
@@ -232,25 +224,357 @@ describe('Credmark Model NFT Rewards', () => {
 
       await modelNftRewards
         .connect(CREDMARK_MANAGER)
-        .setMerkleRoot(merkleTree.getHexRoot());
+        .appendRoot(merkleTree.getHexRoot(), '');
 
       const leaf = leaves[0];
       await expect(
-        modelNftRewards
-          .connect(USER_BRENT)
-          .claimRewards(
-            leaf.tokenId,
-            leaf.amount,
-            merkleTree.getHexProof(encodeLeaf(leaf))
-          )
+        modelNftRewards.connect(USER_BRENT).claim({
+          index: 0,
+          tokenId: leaf.tokenId,
+          amount: leaf.amount,
+          merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+        })
       )
         .to.emit(modelNftRewards, 'RewardsClaimed')
-        .withArgs(USER_ALICE.address, leaf.amount);
+        .withArgs(0, leaf.tokenId, USER_ALICE.address, leaf.amount);
 
       expect(await MODL.balanceOf(USER_ALICE.address)).to.equal(leaf.amount);
       expect(await MODL.balanceOf(USER_BRENT.address)).to.equal(
         BigNumber.from(0)
       );
+    });
+  });
+
+  describe('#multiClaim', () => {
+    it('should allow claiming rewards for multiple accounts', async () => {
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 1'); // 0
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 2'); // 1
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 3'); // 2
+
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_BRENT.address, 'slug 4'); // 3
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_BRENT.address, 'slug 5'); // 4
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_BRENT.address, 'slug 6'); // 5
+
+      await modelNftRewards
+        .connect(CREDMARK_MANAGER)
+        .appendRoot(merkleTree.getHexRoot(), '');
+
+      let expectClaimMulti = expect(
+        modelNftRewards.claimMulti(
+          leaves.map((leaf) => ({
+            index: 0,
+            tokenId: leaf.tokenId,
+            amount: leaf.amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+          }))
+        )
+      );
+
+      for (const leaf of leaves) {
+        const tokenOwner = await modelNft.ownerOf(leaf.tokenId);
+        expectClaimMulti = expectClaimMulti.to
+          .emit(modelNftRewards, 'RewardsClaimed')
+          .withArgs(0, leaf.tokenId, tokenOwner, leaf.amount);
+      }
+
+      await expectClaimMulti;
+    });
+
+    it('should club rewards for multiple tokens for a single account', async () => {
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 1'); // 0
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 2'); // 1
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 3'); // 2
+
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_BRENT.address, 'slug 4'); // 3
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_BRENT.address, 'slug 5'); // 4
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_BRENT.address, 'slug 6'); // 5
+
+      await modelNftRewards
+        .connect(CREDMARK_MANAGER)
+        .appendRoot(merkleTree.getHexRoot(), '');
+
+      await expect(
+        modelNftRewards.claimMulti(
+          leaves.map((leaf) => ({
+            index: 0,
+            tokenId: leaf.tokenId,
+            amount: leaf.amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+          }))
+        )
+      )
+        .to.emit(MODL, 'Transfer')
+        .withArgs(
+          modelNftRewards.address,
+          USER_ALICE.address,
+          leaves[0].amount.add(leaves[1].amount).add(leaves[2].amount)
+        )
+        .and.to.emit(MODL, 'Transfer')
+        .withArgs(
+          modelNftRewards.address,
+          USER_BRENT.address,
+          leaves[3].amount.add(leaves[4].amount).add(leaves[5].amount)
+        );
+    });
+
+    it('should fail to claim rewards for any unminted nft', async () => {
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 1'); // 0
+
+      await modelNftRewards
+        .connect(CREDMARK_MANAGER)
+        .appendRoot(merkleTree.getHexRoot(), '');
+
+      const mintedLeaf = leaves[0];
+      const unmintedLeaf = leaves[1];
+      await expect(
+        modelNftRewards.claimMulti([
+          {
+            index: 0,
+            tokenId: mintedLeaf.tokenId,
+            amount: mintedLeaf.amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(mintedLeaf)),
+          },
+          {
+            index: 0,
+            tokenId: unmintedLeaf.tokenId,
+            amount: unmintedLeaf.amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(unmintedLeaf)),
+          },
+        ])
+      ).to.be.revertedWith('ERC721: invalid token ID');
+    });
+
+    it('should fail to claim rewards for any wrong amount', async () => {
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 1'); // 0
+
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 2'); // 1
+
+      await modelNftRewards
+        .connect(CREDMARK_MANAGER)
+        .appendRoot(merkleTree.getHexRoot(), '');
+
+      await expect(
+        modelNftRewards.claimMulti([
+          {
+            index: 0,
+            tokenId: leaves[0].tokenId,
+            amount: leaves[0].amount.add(1),
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaves[0])),
+          },
+          {
+            index: 0,
+            tokenId: leaves[1].tokenId,
+            amount: leaves[1].amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaves[1])),
+          },
+        ])
+      ).to.be.revertedWith('ModelNftRewards:INVALID_PROOF');
+
+      await expect(
+        modelNftRewards.claimMulti([
+          {
+            index: 0,
+            tokenId: leaves[0].tokenId,
+            amount: leaves[0].amount,
+            merkleProof: merkleTree.getHexProof(
+              encodeLeaf({
+                tokenId: leaves[0].tokenId,
+                amount: leaves[0].amount.add(1),
+              })
+            ),
+          },
+          {
+            index: 0,
+            tokenId: leaves[1].tokenId,
+            amount: leaves[1].amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaves[1])),
+          },
+        ])
+      ).to.be.revertedWith('ModelNftRewards:INVALID_PROOF');
+    });
+
+    it('should reward to owner of nft only', async () => {
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 1'); // 0
+
+      await modelNftRewards
+        .connect(CREDMARK_MANAGER)
+        .appendRoot(merkleTree.getHexRoot(), '');
+
+      const leaf = leaves[0];
+      await expect(
+        modelNftRewards.connect(USER_BRENT).claimMulti([
+          {
+            index: 0,
+            tokenId: leaf.tokenId,
+            amount: leaf.amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+          },
+        ])
+      )
+        .to.emit(modelNftRewards, 'RewardsClaimed')
+        .withArgs(0, leaf.tokenId, USER_ALICE.address, leaf.amount);
+
+      expect(await MODL.balanceOf(USER_ALICE.address)).to.equal(leaf.amount);
+      expect(await MODL.balanceOf(USER_BRENT.address)).to.equal(
+        BigNumber.from(0)
+      );
+    });
+
+    it('should fail to claim rewards for duplicate claims', async () => {
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 1'); // 0
+
+      await modelNftRewards
+        .connect(CREDMARK_MANAGER)
+        .appendRoot(merkleTree.getHexRoot(), '');
+
+      const leaf = leaves[0];
+      await expect(
+        modelNftRewards.claimMulti([
+          {
+            index: 0,
+            tokenId: leaf.tokenId,
+            amount: leaf.amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+          },
+          {
+            index: 0,
+            tokenId: leaf.tokenId,
+            amount: leaf.amount,
+            merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
+          },
+        ])
+      ).to.be.revertedWith('ModelNftRewards:IS_CLAIMED');
+    });
+  });
+
+  describe('#multipleRoots', () => {
+    let otherMerkleTree: MerkleTree;
+
+    const otherLeaves = [
+      {
+        tokenId: ethers.utils.id('slug 10'),
+        amount: (1).toBN(),
+      },
+      {
+        tokenId: ethers.utils.id('slug 20'),
+        amount: (10).toBN18(),
+      },
+      {
+        tokenId: ethers.utils.id('slug 30'),
+        amount: (7).toBN18(),
+      },
+      {
+        tokenId: ethers.utils.id('slug 40'),
+        amount: (8).toBN18(),
+      },
+      {
+        tokenId: ethers.utils.id('slug 50'),
+        amount: (1000).toBN(),
+      },
+      {
+        tokenId: ethers.utils.id('slug 60'),
+        amount: (3).toBN18(),
+      },
+    ];
+
+    beforeEach(async () => {
+      otherMerkleTree = new MerkleTree(
+        otherLeaves.map((leaf) => encodeLeaf(leaf)),
+        ethers.utils.keccak256,
+        { sort: true }
+      );
+    });
+
+    it('should allow appending root more than once', async () => {
+      const root = merkleTree.getHexRoot();
+      await modelNftRewards.connect(CREDMARK_MANAGER).appendRoot(root, '');
+
+      const otherRoot = otherMerkleTree.getHexRoot();
+      await modelNftRewards.connect(CREDMARK_MANAGER).appendRoot(otherRoot, '');
+
+      const newRoot = (await modelNftRewards.merkles(0)).root;
+      expect(newRoot).to.equal(root);
+
+      const newOtherRoot = (await modelNftRewards.merkles(1)).root;
+      expect(newOtherRoot).to.equal(otherRoot);
+    });
+
+    it('should allow claiming rewards for different roots', async () => {
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_ALICE.address, 'slug 1'); // 0
+      await modelNft
+        .connect(CREDMARK_MANAGER)
+        .safeMint(USER_CAMMY.address, 'slug 10'); // 2
+
+      await modelNftRewards
+        .connect(CREDMARK_MANAGER)
+        .appendRoot(merkleTree.getHexRoot(), '');
+
+      await modelNftRewards
+        .connect(CREDMARK_MANAGER)
+        .appendRoot(otherMerkleTree.getHexRoot(), '');
+
+      await expect(
+        modelNftRewards.claim({
+          index: 0,
+          tokenId: leaves[0].tokenId,
+          amount: leaves[0].amount,
+          merkleProof: merkleTree.getHexProof(encodeLeaf(leaves[0])),
+        })
+      )
+        .to.emit(modelNftRewards, 'RewardsClaimed')
+        .withArgs(0, leaves[0].tokenId, USER_ALICE.address, leaves[0].amount);
+
+      await expect(
+        modelNftRewards.claim({
+          index: 1,
+          tokenId: otherLeaves[0].tokenId,
+          amount: otherLeaves[0].amount,
+          merkleProof: otherMerkleTree.getHexProof(encodeLeaf(otherLeaves[0])),
+        })
+      )
+        .to.emit(modelNftRewards, 'RewardsClaimed')
+        .withArgs(
+          1,
+          otherLeaves[0].tokenId,
+          USER_CAMMY.address,
+          otherLeaves[0].amount
+        );
     });
   });
 });
