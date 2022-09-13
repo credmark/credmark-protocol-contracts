@@ -10,11 +10,11 @@ import {
   SubscriptionRewardsIssuer,
   Time,
   ModlSubscription,
-  GenericSubscription,
   ModelNftRewards,
   ModelNft,
   ManagedPriceOracle,
   RevenueTreasury,
+  CmkSubscription,
 } from '../../typechain';
 
 import {
@@ -35,9 +35,10 @@ import {
   MANAGER_ROLE,
   TRUSTED_CONTRACT_ROLE,
   MINTER_ROLE,
-  PAUSER_ROLE,
   DEFAULT_ADMIN_ROLE,
 } from './roles';
+import { StableTokenSubscription } from '../../typechain/StableTokenSubscription';
+import { VariableTokenSubscription } from '../../typechain/VariableTokenSubscription';
 
 let MODL: Modl;
 let MODLAllowance: ModlAllowance;
@@ -57,9 +58,10 @@ let revenueTreasury: RevenueTreasury;
 
 let subscriptionBasic: ModlSubscription;
 let subscriptionPro: ModlSubscription;
-let subscriptionStable: GenericSubscription;
+let subscriptionStable: StableTokenSubscription;
 let subscriptionSuperPro: ModlSubscription;
-let cmkSubscription: GenericSubscription;
+let cmkSubscription: CmkSubscription;
+let wethSubscription: VariableTokenSubscription;
 
 let lTime: Time;
 
@@ -74,8 +76,12 @@ async function deployContracts() {
     'ModlSubscription',
     { libraries: { Time: lTime.address } }
   );
-  const GenericSubscriptionFactory = await ethers.getContractFactory(
-    'GenericSubscription',
+  const StableTokenSubscriptionFactory = await ethers.getContractFactory(
+    'StableTokenSubscription',
+    { libraries: { Time: lTime.address } }
+  );
+  const CmkSubscriptionFactory = await ethers.getContractFactory(
+    'CmkSubscription',
     { libraries: { Time: lTime.address } }
   );
   const ModlAllowanceFactory = await ethers.getContractFactory(
@@ -147,46 +153,41 @@ async function deployContracts() {
     modlAllowanceAddress: MODLAllowance.address,
     modelNftAddress: modelNft.address,
   });
-  mockUsdcPriceOracle = await ManagedPriceOracleFactory.deploy({
-    tokenAddress: USDC.address,
-    initialDecimals: 8,
-    initialPrice: 100000000,
-  });
   mockModlPriceOracle = await ManagedPriceOracleFactory.deploy({
     tokenAddress: MODL.address,
-    initialDecimals: 8,
-    initialPrice: 100000000,
+    initialPrice: 100000000
   });
-  mockCmkPriceOracle = await ManagedPriceOracleFactory.deploy({
-    tokenAddress: CMK.address,
-    initialDecimals: 8,
-    initialPrice: 50000000,
-  });
+
+  // mockEthPriceOracle = await ManagedPriceOracleFactory.deploy({
+  //   tokenAddress: MODL.address,
+  //   initialPrice: 175000000000,
+  // });
 
   subscriptionBasic = (await ModlSubscriptionFactory.deploy({
     tokenAddress: MODL.address,
     rewardsIssuerAddress: rewardsIssuer.address,
-  })) as ModlSubscription;
+  }, mockModlPriceOracle.address)) as ModlSubscription;
 
   subscriptionPro = (await ModlSubscriptionFactory.deploy({
     tokenAddress: MODL.address,
     rewardsIssuerAddress: rewardsIssuer.address,
-  })) as ModlSubscription;
+  }, mockModlPriceOracle.address)) as ModlSubscription;
 
   subscriptionSuperPro = (await ModlSubscriptionFactory.deploy({
     tokenAddress: MODL.address,
     rewardsIssuerAddress: rewardsIssuer.address,
-  })) as ModlSubscription;
+  },
+  mockModlPriceOracle.address)) as ModlSubscription;
 
-  subscriptionStable = (await GenericSubscriptionFactory.deploy({
+  subscriptionStable = (await StableTokenSubscriptionFactory.deploy({
     tokenAddress: USDC.address,
     rewardsIssuerAddress: rewardsIssuer.address,
-  })) as GenericSubscription;
+  }, 100000000, 6)) as StableTokenSubscription;
 
-  cmkSubscription = (await GenericSubscriptionFactory.deploy({
+  cmkSubscription = (await CmkSubscriptionFactory.deploy({
     tokenAddress: CMK.address,
     rewardsIssuerAddress: cmkSubscriptionRewardsIssuer.address,
-  })) as GenericSubscription;
+  })) as CmkSubscription;
 }
 
 async function setupExternalEnvironment() {
@@ -230,16 +231,8 @@ async function grantPermissions() {
   );
   await revenueTreasury.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
   await mockModlPriceOracle.grantRole(
-    CONFIGURER_ROLE,
-    CREDMARK_CONFIGURER.address
-  );
-  await mockCmkPriceOracle.grantRole(
-    CONFIGURER_ROLE,
-    CREDMARK_CONFIGURER.address
-  );
-  await mockUsdcPriceOracle.grantRole(
-    CONFIGURER_ROLE,
-    CREDMARK_CONFIGURER.address
+    MANAGER_ROLE,
+    CREDMARK_MANAGER.address
   );
   await modelNft.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
   await liquidityManager.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
@@ -311,8 +304,7 @@ async function configure() {
     fee: '0',
     multiplier: '100',
     floorPrice: '100000000',
-    treasury: revenueTreasury.address,
-    oracleAddress: mockModlPriceOracle.address,
+    treasury: revenueTreasury.address
   });
 
   await subscriptionPro.connect(CREDMARK_CONFIGURER).configure({
@@ -321,16 +313,15 @@ async function configure() {
     multiplier: '200',
     floorPrice: '100000000',
     treasury: revenueTreasury.address,
-    oracleAddress: mockModlPriceOracle.address,
   });
 
   await subscriptionStable.connect(CREDMARK_CONFIGURER).configure({
     lockup: '2592000',
-    fee: '500000000000000000000',
+    fee: '500000000',
     multiplier: '100',
     floorPrice: '100000000',
     treasury: revenueTreasury.address,
-    oracleAddress: mockUsdcPriceOracle.address,
+
   });
 
   await subscriptionSuperPro.connect(CREDMARK_CONFIGURER).configure({
@@ -339,7 +330,7 @@ async function configure() {
     multiplier: '400',
     floorPrice: '100000000',
     treasury: revenueTreasury.address,
-    oracleAddress: mockModlPriceOracle.address,
+
   });
 
   await cmkSubscription.connect(CREDMARK_CONFIGURER).configure({
@@ -348,7 +339,6 @@ async function configure() {
     multiplier: '100',
     floorPrice: '100000000',
     treasury: revenueTreasury.address,
-    oracleAddress: mockModlPriceOracle.address,
   });
 }
 

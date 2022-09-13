@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./GenericSubscription.sol";
+import "./VariableTokenSubscription.sol";
 
-contract ModlSubscription is GenericSubscription {
-    constructor(ConstructorParams memory params) GenericSubscription(params) {
+contract ModlSubscription is VariableTokenSubscription {
+    constructor(ConstructorParams memory params, address oracleAddress)
+        VariableTokenSubscription(params, oracleAddress)
+    {
         require(
             params.tokenAddress ==
                 address(

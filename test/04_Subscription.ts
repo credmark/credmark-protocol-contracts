@@ -15,6 +15,7 @@ import {
 import { advanceAMonth, advanceAYear } from './helpers/time';
 import {
   CREDMARK_CONFIGURER,
+  CREDMARK_MANAGER,
   HACKER_ZACH,
   MOCK_GODMODE,
   setupUsers,
@@ -44,7 +45,7 @@ describe('Subscription.sol', () => {
   let spTotalDep: Number;
   let spTotalRewards: Number;
 
-  async function balances() {
+  async function balances(print = false) {
     function roundNearest100(num: Number) {
       return Math.round(Number(num) / 100) * 100;
     }
@@ -94,28 +95,31 @@ describe('Subscription.sol', () => {
     spTotalDep = roundNearest100(
       (await subscriptionSuperPro.totalDeposits()).scaledInt(18)
     );
-    console.log(
-      new Date((await ethers.provider.getBlock('latest')).timestamp * 1000)
-    );
-    console.log('modl', abal, bbal, cbal);
-    console.log(
-      'basic',
-      bTotalDep,
-      'rewards:',
-      abRewards,
-      bbRewards,
-      cbRewards
-    );
-    console.log('pro', pTotalDep, 'rewards:', apRewards, bpRewards, cpRewards);
-    console.log(
-      'superpro',
-      spTotalDep,
-      'rewards:',
-      aspRewards,
-      bspRewards,
-      cspRewards
-    );
-    console.log();
+    if(print){
+        console.log(
+            new Date((await ethers.provider.getBlock('latest')).timestamp * 1000)
+          );
+          console.log('modl', abal, bbal, cbal);
+          console.log(
+            'basic',
+            bTotalDep,
+            'rewards:',
+            abRewards,
+            bbRewards,
+            cbRewards
+          );
+          console.log('pro', pTotalDep, 'rewards:', apRewards, bpRewards, cpRewards);
+          console.log(
+            'superpro',
+            spTotalDep,
+            'rewards:',
+            aspRewards,
+            bspRewards,
+            cspRewards
+          );
+          console.log();
+    }
+
   }
 
   before(async () => {});
@@ -252,63 +256,47 @@ describe('Subscription.sol', () => {
 
     await advanceAMonth();
 
-    expect(await subscriptionPro.fees(USER_ALICE.address)).eq((500).toBN18());
+    expect((await subscriptionPro.fees(USER_ALICE.address)).scaledInt(18)).eq((500));
 
     await advanceAMonth();
 
-    expect(await subscriptionPro.fees(USER_ALICE.address)).eq((1_000).toBN18());
+    expect((await subscriptionPro.fees(USER_ALICE.address)).scaledInt(18)).eq((1000));
 
     await mockModlPriceOracle
-      .connect(CREDMARK_CONFIGURER)
-      .configure({ price: '200000000', decimals: '8' });
+      .connect(CREDMARK_MANAGER)
+      .setPrice('200000000');
     await subscriptionPro.snapshot();
 
     await advanceAMonth();
 
-    expect(
-      (await subscriptionPro.fees(USER_ALICE.address))
-        .toString()
-        .substring(0, 4)
-    ).eq('1250');
+    expect((await subscriptionPro.fees(USER_ALICE.address)).scaledInt(18)).eq((1250));
 
     await mockModlPriceOracle
-      .connect(CREDMARK_CONFIGURER)
-      .configure({ price: '400000000', decimals: '8' });
+      .connect(CREDMARK_MANAGER)
+      .setPrice('400000000');
     await subscriptionPro.snapshot();
 
     await advanceAMonth();
 
-    expect(
-      (await subscriptionPro.fees(USER_ALICE.address))
-        .toString()
-        .substring(0, 4)
-    ).eq('1375');
+    expect((await subscriptionPro.fees(USER_ALICE.address)).scaledInt(18)).eq((1375));
 
     await mockModlPriceOracle
-      .connect(CREDMARK_CONFIGURER)
-      .configure({ price: '100000000', decimals: '8' });
+      .connect(CREDMARK_MANAGER)
+      .setPrice('100000000');
     await subscriptionPro.snapshot();
 
     await advanceAMonth();
 
-    expect(
-      (await subscriptionPro.fees(USER_ALICE.address))
-        .toString()
-        .substring(0, 4)
-    ).eq('1875');
+    expect((await subscriptionPro.fees(USER_ALICE.address)).scaledInt(18)).eq((1875));
 
     await mockModlPriceOracle
-      .connect(CREDMARK_CONFIGURER)
-      .configure({ price: '25000000', decimals: '8' });
+      .connect(CREDMARK_MANAGER)
+      .setPrice('25000000');
     await subscriptionPro.snapshot();
 
     await advanceAMonth();
 
-    expect(
-      (await subscriptionPro.fees(USER_ALICE.address))
-        .toString()
-        .substring(0, 4)
-    ).eq('2375');
+    expect((await subscriptionPro.fees(USER_ALICE.address)).scaledInt(18)).eq((2375));
   });
 
   it('Subscription: Can Exit', async () => {

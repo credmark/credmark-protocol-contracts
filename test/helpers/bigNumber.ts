@@ -14,7 +14,10 @@ declare module 'ethers' {
 }
 
 BigNumber.prototype.scaledInt = function (decimals = 0) {
-  return Math.floor(this.div(BigNumber.from(10).pow(decimals)).toNumber());
+  if (decimals == 0) {
+    return this.toNumber();
+  }
+  return Math.round(this.div(BigNumber.from(10).pow(decimals - 1) ).toNumber() / 10 );
 };
 
 // eslint-disable-next-line no-extend-native
@@ -26,3 +29,5 @@ Number.prototype.toBN = function (decimals = 18): BigNumber {
 Number.prototype.toBN18 = function () {
   return this.toBN(18);
 };
+
+

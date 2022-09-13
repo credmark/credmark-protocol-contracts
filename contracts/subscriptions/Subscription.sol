@@ -13,9 +13,8 @@ import "../libraries/Time.sol";
 
 import "../interfaces/ISubscription.sol";
 import "../interfaces/ISubscriptionRewardsIssuer.sol";
-import "../interfaces/IPriceOracle.sol";
 
-contract GenericSubscription is
+abstract contract Subscription is
     ISubscription,
     CSubscription,
     ShareAccumulator,
@@ -153,17 +152,5 @@ contract GenericSubscription is
         emit Liquidate(account, msg.sender, amount);
     }
 
-    function snapshot() public {
-        uint256 price = IPriceOracle(config.oracleAddress).price();
-        if (price < config.floorPrice) {
-            price = config.floorPrice;
-        }
-
-        uint256 shares = (share[GLOBALS] * price * config.multiplier) / (10**8);
-        rewardsIssuer.setShares(shares);
-
-        if (price != fprice) {
-            setPrice(price);
-        }
-    }
+    function snapshot() public virtual {}
 }

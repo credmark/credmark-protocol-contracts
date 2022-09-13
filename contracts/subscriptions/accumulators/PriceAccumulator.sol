@@ -21,8 +21,6 @@ abstract contract PriceAccumulator {
         fsnapt is the timestamp of the last offset snapshot 
     **/
 
-    uint8 internal constant decimals = 8;
-
     uint256 internal fprice;
     uint256 internal foffst;
     uint256 internal fsnapt;
@@ -51,6 +49,6 @@ abstract contract PriceAccumulator {
         return
             fprice == 0
                 ? foffst
-                : (Time.since(fsnapt) * (10**decimals)) / fprice + foffst;
+                : (Time.since(fsnapt) * (10**8)) / fprice + foffst;
     }
 }

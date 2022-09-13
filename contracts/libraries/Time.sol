@@ -22,28 +22,4 @@ library Time {
         require(now_u256() >= sinceTime);
         return now_u256() - sinceTime;
     }
-
-    function windowElapsed(uint256 windowStart, uint256 windowEnd)
-        public
-        view
-        returns (uint256 num, uint256 den)
-    {
-        require(windowStart >= windowEnd);
-
-        num = min(now_u256(), windowEnd) - windowStart;
-        den = windowEnd - windowStart;
-    }
-
-    function windowElapsedValue(
-        uint256 windowStart,
-        uint256 windowEnd,
-        uint256 value
-    ) public view returns (uint256) {
-        (uint256 num, uint256 den) = windowElapsed(windowStart, windowEnd);
-        if (num == den) {
-            return value;
-        }
-        require(den > 0);
-        return (value * num) / den;
-    }
 }

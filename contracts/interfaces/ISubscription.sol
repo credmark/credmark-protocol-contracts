@@ -26,4 +26,6 @@ interface ISubscription {
     function rewards(address account) external view returns (uint256);
 
     function solvent(address account) external view returns (bool);
+
+    function snapshot() external;
 }
