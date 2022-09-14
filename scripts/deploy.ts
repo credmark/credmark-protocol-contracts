@@ -11,8 +11,10 @@ async function main() {
       
     >>DEPLOY CONTRACTS<<
 
-      Deploy Contracts Dep 0
+      Deploy Libraries
         Time
+        
+      Deploy Contracts Dep 0
         Modl
         ModelNft
       
@@ -39,6 +41,7 @@ async function main() {
         Credmark Multisig Role Assigner
 
       Grant Configurer Permissions 
+        Modl
         Modl Allowance
         Rewards Issuer
         Cmk Rewards Issuer
@@ -52,10 +55,10 @@ async function main() {
           Credmark Multisig Configurer
         
       Grant Manager Permissions
+        Modl
         Managed Price Oracle
         Model Nft
         Model Nft Rewards
-
           Credmark Multisig Manager
 
         Liquidity Manager
@@ -91,11 +94,6 @@ async function main() {
         Super Pro Subscription
         Cmk Subscription
     
-    >>PREPARE<<
-
-      Mint Modl for Liquidity Manager
-      Set Modl Oracle price
-
     >>CLEANUP<<
     
       Revoke Deployer Credentials
@@ -129,7 +127,10 @@ async function main() {
         Minter
           Modl
     
-    >>LAUNCH<<
+    >>LAUNCH<<   
+      Set Modl Oracle price   
+      Update Modl Allowance for Dao
+      Mint Modl for Liquidity Manager
       Start Liquidity Manager
 
       Optional:
@@ -137,11 +138,11 @@ async function main() {
         Deploy Contracts (optional): 
           Chainlink Price Oracle (WETH)
         Deploy Contracts (optional): 
-          USDC Subscription, 
+          usdc Subscription, 
           WETH Subscription
 
         Rewards Issuer - WETH (optional)
-        Rewards Issuer - USDC (optional)
+        Rewards Issuer - usdc (optional)
 */
 }
 
