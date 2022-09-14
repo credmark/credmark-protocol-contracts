@@ -236,6 +236,20 @@ describe('LiquidityManager.sol operations', () => {
 
     expect(await poolPrice(uniswapV3Pool.address)).lt(price);
   });
+  it('Cleaning fails if it is front run', async () => {
+    let price = await poolPrice(uniswapV3Pool.address);
+    let slot0 = await uniswapV3Pool.slot0();
+
+    await buyModl(USER_ALICE, BigNumber.from(10000).toWei(6));
+
+    expect(
+      liquidityManager
+        .connect(CREDMARK_MANAGER)
+        .clean(slot0.sqrtPriceX96.toString())
+    ).reverted;
+
+    expect(await poolPrice(uniswapV3Pool.address)).gt(price);
+  });
   it('Cleaning bumps the price up', async () => {
     let price = await poolPrice(uniswapV3Pool.address);
     let slot0 = await uniswapV3Pool.slot0();
