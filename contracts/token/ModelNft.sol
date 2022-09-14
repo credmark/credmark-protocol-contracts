@@ -24,13 +24,13 @@ contract ModelNft is ERC721, Pausable, ERC721Enumerable, Permissioned {
         _unpause();
     }
 
-    function safeMint(address to, string memory _slug) public manager {
-        uint256 tokenId = toHash(_slug);
+    function safeMint(address to, string memory slug) external manager {
+        uint256 tokenId = toHash(slug);
         _safeMint(to, tokenId);
     }
 
-    function toHash(string memory _slug) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(_slug)));
+    function toHash(string memory slug) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(slug)));
     }
 
     function _beforeTokenTransfer(

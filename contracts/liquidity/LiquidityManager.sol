@@ -3,12 +3,14 @@ pragma solidity ^0.8.17;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "../external/uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "../libraries/Time.sol";
 
 import "../interfaces/ILiquidityManager.sol";
 import "../configuration/CLiquidityManager.sol";
@@ -18,6 +20,8 @@ contract LiquidityManager is
     CLiquidityManager,
     ReentrancyGuard
 {
+    using SafeERC20 for IERC20;
+
     constructor(ConstructorParams memory params) CLiquidityManager(params) {}
 
     INonfungiblePositionManager private constant NFPM =
@@ -32,19 +36,19 @@ contract LiquidityManager is
     uint128 public currentLiquidity;
     uint24 public constant POOL_FEE = 10000;
 
-    int24 tickUpper = 870000;
-    int24 tickLower = -870000;
-    int24 tickInit = -276300;
+    int24 private tickUpper = 870000;
+    int24 private tickLower = -870000;
+    int24 private tickInit = -276300;
 
-    bool private _mutexLocked;
     uint256 public started = 0;
-
-    uint160 sqrtPriceLimitSnap;
-    uint256 sqrtPriceLimitSnapTimestamp;
 
     function start() external override nonReentrant manager {
         require(started == 0, "S");
-        require(modl.balanceOf(address(this)) > 0, "ZB");
+        uint256 currentBlockTimestamp = Time.now_u256();
+        started = currentBlockTimestamp;
+
+        uint256 modlBalance = modl.balanceOf(address(this));
+        require(modlBalance > 0, "ZB");
 
         address poolAddress = FACT.createPool(
             address(modl),
@@ -66,7 +70,7 @@ contract LiquidityManager is
 
         pool.initialize(TickMath.getSqrtRatioAtTick(tickInit));
 
-        modl.approve(address(NFPM), modl.balanceOf(address(this)));
+        IERC20(modl).safeApprove(address(NFPM), modlBalance);
 
         (uint256 tokenId, uint128 liquidity, , ) = NFPM.mint(
             INonfungiblePositionManager.MintParams({
@@ -80,13 +84,12 @@ contract LiquidityManager is
                 amount0Min: 0,
                 amount1Min: 0,
                 recipient: address(this),
-                deadline: block.timestamp
+                deadline: currentBlockTimestamp
             })
         );
 
         liquidityTokenId = tokenId;
         currentLiquidity = liquidity;
-        started = block.timestamp;
         emit Start(poolAddress);
     }
 
@@ -114,7 +117,7 @@ contract LiquidityManager is
         );
 
         uint256 usdcBalance = usdc.balanceOf(address(this));
-        require(usdc.approve(address(SWAP), usdcBalance));
+        usdc.safeApprove(address(SWAP), usdcBalance);
 
         SWAP.exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
@@ -122,7 +125,7 @@ contract LiquidityManager is
                 tokenOut: address(modl),
                 fee: POOL_FEE,
                 recipient: address(this),
-                deadline: block.timestamp,
+                deadline: Time.now_u256(),
                 amountIn: usdcBalance,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
@@ -130,14 +133,14 @@ contract LiquidityManager is
         );
 
         uint256 modlBalance = modl.balanceOf(address(this));
-        require(modl.transfer(revenueTreasury, modlBalance));
+        IERC20(modl).safeTransfer(revenueTreasury, modlBalance);
 
         emit Clean(sqrtPriceLimitX96_, usdcBalance, modlBalance);
     }
 
     function transferPosition() external configurer {
         require(started != 0, "NS");
-        require(block.timestamp > started + lockup, "TL");
+        require(Time.now_u256() > started + lockup, "TL");
         NFPM.transferFrom(address(this), revenueTreasury, liquidityTokenId);
     }
 }

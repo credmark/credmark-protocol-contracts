@@ -154,13 +154,15 @@ async function deployContractsDependency0() {
 }
 
 async function deployContractsDependency1() {
-  let FMA = await ethers.getContractFactory('ModlAllowance', {
+  const FMA = await ethers.getContractFactory('ModlAllowance', {
     libraries: { Time: timeLibrary.address },
   });
-  let FRI = await ethers.getContractFactory('SubscriptionRewardsIssuer', {
+  const FRI = await ethers.getContractFactory('SubscriptionRewardsIssuer', {
     libraries: { Time: timeLibrary.address },
   });
-  const FLM = await ethers.getContractFactory('LiquidityManager');
+  const FLM = await ethers.getContractFactory('LiquidityManager', {
+    libraries: { Time: timeLibrary.address },
+  });
   const FRT = await ethers.getContractFactory('RevenueTreasury');
 
   modlAllowance = (await FMA.deploy({
@@ -243,17 +245,17 @@ async function deployContractsDependency3() {
 }
 
 async function grantConfigurer() {
-  for (var contract of configurableContracts()) {
+  for (const contract of configurableContracts()) {
     await contract.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
   }
 }
 async function grantManager() {
-  for (var contract of managedContracts()) {
+  for (const contract of managedContracts()) {
     await contract.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
   }
 }
 async function grantAdmin() {
-  for (var contract of managedContracts()) {
+  for (const contract of managedContracts()) {
     await contract.grantRole(
       DEFAULT_ADMIN_ROLE,
       CREDMARK_ROLE_ASSIGNER.address
@@ -261,7 +263,7 @@ async function grantAdmin() {
   }
 }
 async function grantTrustedContract() {
-  for (var contract of subscriptions()) {
+  for (const contract of subscriptions()) {
     await rewards.grantRole(TRUSTED_CONTRACT_ROLE, contract.address);
   }
   await rewardsCmk.grantRole(TRUSTED_CONTRACT_ROLE, subCmk.address);

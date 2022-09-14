@@ -25,7 +25,7 @@ abstract contract CRevenueTreasury is Configurable {
             "CRevenueTreasury:CONFIG_VALUE_ERROR:modlPercentToDao"
         );
         require(
-            newConfig.daoAddress != address(0x0),
+            newConfig.daoAddress != address(0),
             "CRevenueTreasury:CONFIG_VALUE_ERROR:daoAddress"
         );
         config = newConfig;

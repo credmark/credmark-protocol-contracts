@@ -8,8 +8,6 @@ import "../configuration/CModelNftRewards.sol";
 import "../interfaces/IModelNftRewards.sol";
 
 contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
-    using MerkleProof for bytes32[];
-
     constructor(ConstructorParams memory params) CModelNftRewards(params) {}
 
     struct Merkle {
@@ -46,21 +44,36 @@ contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
     function claimMulti(Claim[] memory claims) external override {
         uint256 batchedAmount = 0;
         uint256 claimCount = claims.length;
+
+        address tokenOwner;
+        address nextTokenOwner;
         for (uint256 i = 0; i < claimCount; i++) {
             Claim memory _claim = claims[i];
-            address tokenOwner = modelNft.ownerOf(_claim.tokenId);
+            tokenOwner = i == 0
+                ? modelNft.ownerOf(_claim.tokenId)
+                : nextTokenOwner;
+
             _verifyAndMarkClaimed(tokenOwner, _claim);
             batchedAmount += _claim.amount;
 
             // If the next claim is NOT the same account or this claim is the last one,
             // then disburse the `batchedAmount` to the current claim's token's account
             uint256 nextI = i + 1;
-            if (
-                nextI == claimCount ||
-                modelNft.ownerOf(claims[nextI].tokenId) != tokenOwner
-            ) {
-                if (modl.balanceOf(address(this)) < batchedAmount) {
-                    modlAllowance.claim(address(this));
+            nextTokenOwner = nextI == claimCount
+                ? address(0)
+                : modelNft.ownerOf(claims[nextI].tokenId);
+
+            if (nextI == claimCount || nextTokenOwner != tokenOwner) {
+                uint256 balance = modl.balanceOf(address(this));
+                if (balance < batchedAmount) {
+                    uint256 claimedAllowance = modlAllowance.claim(
+                        address(this)
+                    );
+
+                    require(
+                        claimedAllowance >= batchedAmount - balance,
+                        "ModelNftRewards:LOW_FUNDS"
+                    );
                 }
 
                 bool success = modl.transfer(tokenOwner, batchedAmount);
