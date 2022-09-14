@@ -6,13 +6,13 @@ import "../external/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interfac
 import "../interfaces/IPriceOracle.sol";
 
 contract ChainlinkPriceOracle is IPriceOracle {
-    AggregatorV3Interface internal _oracle;
+    AggregatorV3Interface private _oracle;
 
     constructor(AggregatorV3Interface oracle) {
         _oracle = oracle;
     }
 
-    function price() public view override returns (uint256) {
+    function price() external view override returns (uint256) {
         (, int256 latestPrice, , , ) = _oracle.latestRoundData();
         require(
             latestPrice >= 0,
@@ -21,7 +21,7 @@ contract ChainlinkPriceOracle is IPriceOracle {
         return uint256(latestPrice);
     }
 
-    function decimals() public view override returns (uint8) {
+    function decimals() external view override returns (uint8) {
         return _oracle.decimals();
     }
 }

@@ -23,32 +23,32 @@ contract Modl is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function snapshot() public manager {
+    function snapshot() external manager {
         _snapshot();
     }
 
-    function pause() public configurer {
+    function pause() external configurer {
         _pause();
     }
 
-    function unpause() public configurer {
+    function unpause() external configurer {
         _unpause();
     }
 
     function mint(address to, uint256 amount)
-        public
+        external
         override
         onlyRole(MINTER_ROLE)
     {
         _mint(to, amount);
     }
 
-    function burn(uint256 amount) public override {
+    function burn(uint256 amount) external override {
         _burn(_msgSender(), amount);
         emit Burn(amount);
     }
 
-    function burnFrom(address account, uint256 amount) public override {
+    function burnFrom(address account, uint256 amount) external override {
         _spendAllowance(account, _msgSender(), amount);
         _burn(account, amount);
         emit Burn(amount);

@@ -93,7 +93,7 @@ abstract contract Subscription is
         return deposits(account) >= fees(account);
     }
 
-    function totalDeposits() public view returns (uint256) {
+    function totalDeposits() external view returns (uint256) {
         return share[GLOBALS];
     }
 
@@ -152,5 +152,5 @@ abstract contract Subscription is
         emit Liquidate(account, msg.sender, amount);
     }
 
-    function snapshot() public virtual {}
+    function snapshot() public virtual;
 }

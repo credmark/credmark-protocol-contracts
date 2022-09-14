@@ -65,14 +65,13 @@ contract ModlAllowance is IModlAllowance, CModlAllowance {
         return _claim(account);
     }
 
-    function _claim(address account) internal returns (uint256 amount) {
+    function _claim(address account) private returns (uint256 amount) {
         amount = claimableAmount(account);
 
         allowance[account].start = Time.now_u64();
         totalClaimed += amount;
 
         modl.mint(account, amount);
-
         emit Claim(account, amount);
     }
 

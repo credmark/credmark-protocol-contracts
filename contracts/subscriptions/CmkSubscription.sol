@@ -5,6 +5,6 @@ import "./StableTokenSubscription.sol";
 
 contract CmkSubscription is StableTokenSubscription {
     constructor(ConstructorParams memory params)
-        StableTokenSubscription(params, 70000000, 18)
+        StableTokenSubscription(params, 7e6, 18)
     {}
 }
