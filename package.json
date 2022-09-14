@@ -10,7 +10,8 @@
     "test:gas": "REPORT_GAS=true hardhat test",
     "test:coverage": "hardhat coverage",
     "lint": "solhint contracts/**/*.sol",
-    "prettier:solidity": "./node_modules/.bin/prettier --write contracts/**/*.sol"
+    "prettier:solidity": "./node_modules/.bin/prettier --write contracts/**/*.sol",
+    "slither": "slither . --filter-paths \"openzeppelin|external\""
   },
   "repository": {
     "type": "git",

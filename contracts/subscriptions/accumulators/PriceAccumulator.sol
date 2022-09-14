@@ -38,7 +38,7 @@ abstract contract PriceAccumulator {
     function setPrice(uint256 newPrice) internal {
         foffst = currentFeeOffset();
         fprice = newPrice;
-        fsnapt = Time.now_u256();
+        fsnapt = Time.current();
     }
 
     /** 

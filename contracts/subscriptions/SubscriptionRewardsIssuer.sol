@@ -23,7 +23,7 @@ contract SubscriptionRewardsIssuer is
     constructor(ConstructorParams memory params)
         CSubscriptionRewardsIssuer(params)
     {
-        lastIssued = Time.now_u256();
+        lastIssued = Time.current();
     }
 
     function issue()
@@ -33,7 +33,7 @@ contract SubscriptionRewardsIssuer is
         returns (uint256 rewardsIssued)
     {
         _accumulate(_mintableAmount());
-        lastIssued = Time.now_u256();
+        lastIssued = Time.current();
         rewardsIssued = _removeAccumulation(msg.sender);
         modl.mint(msg.sender, rewardsIssued);
 
@@ -64,6 +64,9 @@ contract SubscriptionRewardsIssuer is
     }
 
     function _mintableAmount() internal view returns (uint256) {
+        if (lastIssued > end) {
+            return 0;
+        }
         return (config.amountPerAnnum * Time.since(lastIssued)) / PER_ANNUM;
     }
 

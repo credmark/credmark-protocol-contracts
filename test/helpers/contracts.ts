@@ -171,10 +171,12 @@ async function deployContractsDependency1() {
 
   rewards = (await FRI.deploy({
     modlAddress: modl.address,
+    end: 2209010400,
   })) as SubscriptionRewardsIssuer;
 
   rewardsCmk = (await FRI.deploy({
     modlAddress: modl.address,
+    end: 1798783200,
   })) as SubscriptionRewardsIssuer;
 
   revenueTreasury = (await FRT.deploy({

@@ -37,7 +37,7 @@ abstract contract Subscription is
     }
 
     function exit() external override {
-        require(Time.now_u256() > lockupExpiration[msg.sender], "TL");
+        require(Time.current() > lockupExpiration[msg.sender], "TL");
         (uint256 amount, uint256 fee) = _exit(msg.sender);
 
         if (amount > 0) {
@@ -108,7 +108,7 @@ abstract contract Subscription is
 
         if (feeOffset[account] == 0) {
             feeOffset[account] = currentFeeOffset();
-            lockupExpiration[account] = Time.now_u256() + config.lockup;
+            lockupExpiration[account] = Time.current() + config.lockup;
         }
 
         emit Deposit(account, amount);

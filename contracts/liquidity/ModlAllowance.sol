@@ -13,7 +13,7 @@ contract ModlAllowance is IModlAllowance, CModlAllowance {
     uint256 private constant PER_ANNUM = 86400 * 365;
 
     struct Allowance {
-        uint64 start;
+        uint256 start;
         uint256 amountPerAnnum;
     }
 
@@ -35,7 +35,7 @@ contract ModlAllowance is IModlAllowance, CModlAllowance {
 
         _claim(account);
 
-        allowance[account].start = Time.now_u64();
+        allowance[account].start = Time.current();
         allowance[account].amountPerAnnum = amountPerAnnum;
 
         require(
@@ -68,7 +68,7 @@ contract ModlAllowance is IModlAllowance, CModlAllowance {
     function _claim(address account) private returns (uint256 amount) {
         amount = claimableAmount(account);
 
-        allowance[account].start = Time.now_u64();
+        allowance[account].start = Time.current();
         totalClaimed += amount;
 
         modl.mint(account, amount);

@@ -44,7 +44,7 @@ contract LiquidityManager is
 
     function start() external override nonReentrant manager {
         require(started == 0, "S");
-        uint256 currentBlockTimestamp = Time.now_u256();
+        uint256 currentBlockTimestamp = Time.current();
         started = currentBlockTimestamp;
 
         uint256 modlBalance = modl.balanceOf(address(this));
@@ -125,7 +125,7 @@ contract LiquidityManager is
                 tokenOut: address(modl),
                 fee: POOL_FEE,
                 recipient: address(this),
-                deadline: Time.now_u256(),
+                deadline: Time.current(),
                 amountIn: usdcBalance,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
@@ -140,7 +140,7 @@ contract LiquidityManager is
 
     function transferPosition() external configurer {
         require(started != 0, "NS");
-        require(Time.now_u256() > started + lockup, "TL");
+        require(Time.current() > started + lockup, "TL");
         NFPM.transferFrom(address(this), revenueTreasury, liquidityTokenId);
     }
 }
