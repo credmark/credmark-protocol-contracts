@@ -1,4 +1,5 @@
 import { ethers } from 'hardhat';
+import './helpers/bigNumber';
 
 import {
   liquidityManager,
@@ -16,6 +17,7 @@ import {
   USER_ALICE,
   USER_BRENT,
   USER_CAMMY,
+  HACKER_ZACH,
 } from './helpers/users';
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -28,35 +30,50 @@ function expectClose(value: number, expectedValue: number) {
   expect(value).to.greaterThanOrEqual(expectedValue * 0.98);
   expect(value).to.lessThanOrEqual(expectedValue * 1.02);
 }
-declare global {
-  interface Number {
-    BNTokStr: () => string;
-  }
-  interface String {
-    TokValInt: () => Number;
-  }
-}
-
-Number.prototype.BNTokStr = function () {
-  return '' + this + '000000000000000000';
-};
-
-String.prototype.TokValInt = function () {
-  if (this == '0') {
-    return 0;
-  }
-  return Number(this.slice(0, -18));
-};
-let depositDiv: Number;
-let conversionMul: Number;
 
 const priceDiff = function (oldPrice: number, newPrice: number) {
   return ((newPrice - oldPrice) / oldPrice) * 100;
 };
 
-describe('LiquidityManager.sol : setup', () => {
-  beforeEach(async () => {
+describe('LiquidityManager.sol', () => {
+  before(async () => {
     await setupUsers();
+  });
+
+  describe('Liquidity Manager : Setup', () => {
+    before(async () => {
+      await setupProtocol();
+    });
+
+    it('Cannot be cleaned before start', async () => {
+      await expect(
+        liquidityManager.connect(CREDMARK_MANAGER).clean(0)
+      ).revertedWith('NS');
+    });
+
+    it('Cannot be started unfunded', async () => {
+      await expect(
+        liquidityManager.connect(CREDMARK_MANAGER).start()
+      ).revertedWith('ZB');
+    });
+
+    it('Cannot be started except by manager', async () => {
+      await modl
+        .connect(TEST_GODMODE)
+        .mint(liquidityManager.address, BigNumber.from(7_500_000).toWei());
+      await expect(liquidityManager.connect(HACKER_ZACH).start()).reverted;
+    });
+
+    it('Can be started by manager once funded', async () => {
+      await expect(liquidityManager.connect(CREDMARK_MANAGER).start()).not
+        .reverted;
+    });
+
+    it('Tracks start time', async () => {
+      expect(await (await liquidityManager.started()).toNumber()).gt(
+        1650000000
+      );
+    });
   });
 
   it('test ability to start with both random orientations', async () => {
@@ -68,7 +85,7 @@ describe('LiquidityManager.sol : setup', () => {
 
       await modl
         .connect(TEST_GODMODE)
-        .mint(liquidityManager.address, '7500000000000000000000000');
+        .mint(liquidityManager.address, BigNumber.from(7_500_000).toWei());
       await liquidityManager.connect(CREDMARK_MANAGER).start();
 
       expect(await (await liquidityManager.started()).toString()).not.eq('0');
@@ -98,9 +115,6 @@ describe('LiquidityManager.sol : setup', () => {
     expect(await (await liquidityManager.started()).toString()).not.eq('0');
     await expect(liquidityManager.start()).reverted;
     await expect(liquidityManager.clean('0')).reverted;
-    await usdc
-      .connect(CREDMARK_MANAGER)
-      .transfer(liquidityManager.address, '10000000000');
   });
 });
 
@@ -110,15 +124,9 @@ describe('LiquidityManager.sol operation', () => {
     await setupUsers();
     await setupProtocol();
 
-    await usdc
-      .connect(CREDMARK_MANAGER)
-      .transfer(USER_ALICE.address, '1000000000000');
-    await usdc
-      .connect(CREDMARK_MANAGER)
-      .transfer(USER_BRENT.address, '1000000000000');
-    await usdc
-      .connect(CREDMARK_MANAGER)
-      .transfer(USER_CAMMY.address, '1000000000000');
+    await usdc.connect(TEST_GODMODE).mint(USER_ALICE.address, '1000000000000');
+    await usdc.connect(TEST_GODMODE).mint(USER_BRENT.address, '1000000000000');
+    await usdc.connect(TEST_GODMODE).mint(USER_CAMMY.address, '1000000000000');
 
     advanceAnHour();
     await modl

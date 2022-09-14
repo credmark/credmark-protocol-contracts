@@ -40,6 +40,7 @@ import { StableTokenSubscription } from '../../typechain/StableTokenSubscription
 import { VariableTokenSubscription } from '../../typechain/VariableTokenSubscription';
 import { BigNumber, BytesLike } from 'ethers';
 import { Contract } from 'hardhat/internal/hardhat-network/stack-traces/model';
+import { univ3Addresses } from './constants';
 
 let modl: Modl;
 let modlAllowance: ModlAllowance;
@@ -78,6 +79,7 @@ function configurableContracts() {
     subPro,
     subSuper,
     subCmk,
+    liquidityManager,
   ];
 }
 
@@ -110,6 +112,12 @@ let timeLibrary: Time;
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
+async function connectExternals() {
+  swapRouter = (await ethers.getContractAt(
+    'ISwapRouter',
+    univ3Addresses.univ3SwapRouter
+  )) as ISwapRouter;
+}
 async function mockTokens() {
   /* Deploy Mock Tokens */
 
@@ -328,6 +336,8 @@ async function configure() {
 
 async function setupProtocol() {
   await setupUsers();
+
+  await connectExternals();
 
   await deployContracts();
 
