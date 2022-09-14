@@ -45,13 +45,13 @@ contract Modl is
 
     function burn(uint256 amount) external override {
         _burn(_msgSender(), amount);
-        emit Burn(amount);
+        emit Burn(_msgSender(), amount);
     }
 
-    function burnFrom(address account, uint256 amount) external override {
+    function burnFrom(address account, uint256 amount) external {
         _spendAllowance(account, _msgSender(), amount);
         _burn(account, amount);
-        emit Burn(amount);
+        emit Burn(account, amount);
     }
 
     function _beforeTokenTransfer(
