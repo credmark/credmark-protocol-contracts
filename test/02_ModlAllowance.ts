@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 import {
+  modl,
+  modlAllowance,
   deployContracts,
   grantPermissions,
-  MODL,
-  MODLAllowance,
 } from './helpers/contracts';
 import { advanceAMonth } from './helpers/time';
 import {
@@ -30,60 +30,57 @@ describe('ModlAllowance.sol', () => {
 
   it('Permissions prevent unauthorized calls', async () => {
     await expect(
-      MODLAllowance.connect(HACKER_ZACH).configure({
+      modlAllowance.connect(HACKER_ZACH).configure({
         ceiling: '1000000000000000000000000',
       })
     ).to.be.reverted;
     await expect(
-      MODLAllowance.connect(HACKER_ZACH).update(HACKER_ZACH.address, '1000')
+      modlAllowance.connect(HACKER_ZACH).update(HACKER_ZACH.address, '1000')
     ).to.be.reverted;
     await expect(
-      MODLAllowance.connect(HACKER_ZACH).emergencyStop(HACKER_ZACH.address)
+      modlAllowance.connect(HACKER_ZACH).emergencyStop(HACKER_ZACH.address)
     ).to.be.reverted;
   });
 
   it('Permissions allow authorized calls', async () => {
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).configure({
+      modlAllowance.connect(CREDMARK_CONFIGURER).configure({
         ceiling: '1000000000000000000000000',
       })
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-        CREDMARK_TREASURY_MULTISIG.address,
-        '1000'
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .update(CREDMARK_TREASURY_MULTISIG.address, '1000')
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-        CREDMARK_TREASURY_MULTISIG.address,
-        '10000'
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .update(CREDMARK_TREASURY_MULTISIG.address, '10000')
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).emergencyStop(
-        CREDMARK_TREASURY_MULTISIG.address
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .emergencyStop(CREDMARK_TREASURY_MULTISIG.address)
     ).not.to.be.reverted;
   });
 
   it('Emits Linearly with Time', async () => {
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).configure({
+      modlAllowance.connect(CREDMARK_CONFIGURER).configure({
         ceiling: '1000000000000000000000000',
       })
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-        CREDMARK_TREASURY_MULTISIG.address,
-        '12000'
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .update(CREDMARK_TREASURY_MULTISIG.address, '12000')
     ).not.to.be.reverted;
 
     for (let i = 0; i < 24; i++) {
       expectClose(
         (
-          await MODLAllowance.claimableAmount(
+          await modlAllowance.claimableAmount(
             CREDMARK_TREASURY_MULTISIG.address
           )
         ).toNumber(),
@@ -95,161 +92,156 @@ describe('ModlAllowance.sol', () => {
 
   it('The ceiling prevents over-allocation', async () => {
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).configure({
+      modlAllowance.connect(CREDMARK_CONFIGURER).configure({
         ceiling: '1000000000000000000000000',
       })
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-        USER_ALICE.address,
-        '1000000000000000000000000'
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .update(USER_ALICE.address, '1000000000000000000000000')
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_BRENT.address, '1')
+      modlAllowance.connect(CREDMARK_CONFIGURER).update(USER_BRENT.address, '1')
     ).reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).configure({
+      modlAllowance.connect(CREDMARK_CONFIGURER).configure({
         ceiling: '1000000000000000000000001',
       })
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_BRENT.address, '1')
+      modlAllowance.connect(CREDMARK_CONFIGURER).update(USER_BRENT.address, '1')
     ).not.reverted;
   });
 
   it('Cannot Claim the same tokens twice', async () => {
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).configure({
+      modlAllowance.connect(CREDMARK_CONFIGURER).configure({
         ceiling: '1000000000000000000000000',
       })
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-        USER_ALICE.address,
-        '12000'
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .update(USER_ALICE.address, '12000')
     ).not.to.be.reverted;
 
     for (let i = 0; i < 30; i++) {
       await advanceAMonth();
-      await MODLAllowance.connect(USER_ALICE).claim(USER_ALICE.address);
+      await modlAllowance.connect(USER_ALICE).claim(USER_ALICE.address);
     }
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_ALICE.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_ALICE.address)).toNumber(),
       0
     );
-    expectClose((await MODL.balanceOf(USER_ALICE.address)).toNumber(), 30000);
+    expectClose((await modl.balanceOf(USER_ALICE.address)).toNumber(), 30000);
   });
 
   it('it claims updated allowance', async () => {
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).configure({
+      modlAllowance.connect(CREDMARK_CONFIGURER).configure({
         ceiling: '1000000000000000000000000',
       })
     ).not.to.be.reverted;
 
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-        USER_ALICE.address,
-        '12000'
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .update(USER_ALICE.address, '12000')
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-        USER_BRENT.address,
-        '12000'
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .update(USER_BRENT.address, '12000')
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-        USER_CAMMY.address,
-        '12000'
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .update(USER_CAMMY.address, '12000')
     ).not.to.be.reverted;
 
     await advanceAMonth();
 
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_ALICE.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_ALICE.address)).toNumber(),
       1000
     );
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_BRENT.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_BRENT.address)).toNumber(),
       1000
     );
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_CAMMY.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_CAMMY.address)).toNumber(),
       1000
     );
 
     expectClose(
-      (await MODLAllowance.totalAllowancePerAnnum()).toNumber(),
+      (await modlAllowance.totalAllowancePerAnnum()).toNumber(),
       12000 * 3
     );
 
-    await expect(MODLAllowance.connect(USER_ALICE).claim(USER_ALICE.address))
+    await expect(modlAllowance.connect(USER_ALICE).claim(USER_ALICE.address))
       .not.to.be.reverted;
-    await expect(MODLAllowance.connect(USER_BRENT).claim(USER_BRENT.address))
+    await expect(modlAllowance.connect(USER_BRENT).claim(USER_BRENT.address))
       .not.to.be.reverted;
 
-    expectClose((await MODL.totalSupply()).toNumber(), 1000 * 2);
+    expectClose((await modl.totalSupply()).toNumber(), 1000 * 2);
     expectClose(
-      (await MODLAllowance.totalAllowancePerAnnum()).toNumber(),
+      (await modlAllowance.totalAllowancePerAnnum()).toNumber(),
       12000 * 3
     );
 
     await advanceAMonth();
 
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_ALICE.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_ALICE.address)).toNumber(),
       1000
     );
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_BRENT.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_BRENT.address)).toNumber(),
       1000
     );
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_CAMMY.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_CAMMY.address)).toNumber(),
       2000
     );
 
-    expectClose((await MODL.totalSupply()).toNumber(), 1000 * 2);
+    expectClose((await modl.totalSupply()).toNumber(), 1000 * 2);
 
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).update(USER_ALICE.address, '0')
+      modlAllowance.connect(CREDMARK_CONFIGURER).update(USER_ALICE.address, '0')
     ).not.to.be.reverted;
     await expect(
-      MODLAllowance.connect(CREDMARK_CONFIGURER).emergencyStop(
-        USER_BRENT.address
-      )
+      modlAllowance
+        .connect(CREDMARK_CONFIGURER)
+        .emergencyStop(USER_BRENT.address)
     ).not.to.be.reverted;
 
-    expectClose((await MODL.totalSupply()).toNumber(), 3000);
+    expectClose((await modl.totalSupply()).toNumber(), 3000);
     expectClose(
-      (await MODLAllowance.totalAllowancePerAnnum()).toNumber(),
+      (await modlAllowance.totalAllowancePerAnnum()).toNumber(),
       12000
     );
 
     await advanceAMonth();
 
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_ALICE.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_ALICE.address)).toNumber(),
       0
     );
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_BRENT.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_BRENT.address)).toNumber(),
       0
     );
     expectClose(
-      (await MODLAllowance.claimableAmount(USER_CAMMY.address)).toNumber(),
+      (await modlAllowance.claimableAmount(USER_CAMMY.address)).toNumber(),
       3000
     );
 
-    expectClose((await MODL.balanceOf(USER_ALICE.address)).toNumber(), 2000);
-    expectClose((await MODL.balanceOf(USER_BRENT.address)).toNumber(), 1000);
-    expectClose((await MODL.balanceOf(USER_CAMMY.address)).toNumber(), 0);
+    expectClose((await modl.balanceOf(USER_ALICE.address)).toNumber(), 2000);
+    expectClose((await modl.balanceOf(USER_BRENT.address)).toNumber(), 1000);
+    expectClose((await modl.balanceOf(USER_CAMMY.address)).toNumber(), 0);
 
-    expectClose((await MODL.totalSupply()).toNumber(), 3000);
+    expectClose((await modl.totalSupply()).toNumber(), 3000);
   });
 });

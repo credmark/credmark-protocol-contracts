@@ -10,6 +10,7 @@ declare global {
 declare module 'ethers' {
   export interface BigNumber {
     scaledInt: (decimals?: number) => number;
+    toWei: (decimals?: number) => BigNumber;
   }
 }
 
@@ -17,7 +18,13 @@ BigNumber.prototype.scaledInt = function (decimals = 0) {
   if (decimals == 0) {
     return this.toNumber();
   }
-  return Math.round(this.div(BigNumber.from(10).pow(decimals - 1) ).toNumber() / 10 );
+  return Math.round(
+    this.div(BigNumber.from(10).pow(decimals - 1)).toNumber() / 10
+  );
+};
+
+BigNumber.prototype.toWei = function (decimals = 18) {
+  return this.mul(BigNumber.from(10).pow(decimals));
 };
 
 // eslint-disable-next-line no-extend-native
@@ -29,5 +36,3 @@ Number.prototype.toBN = function (decimals = 18): BigNumber {
 Number.prototype.toBN18 = function () {
   return this.toBN(18);
 };
-
-

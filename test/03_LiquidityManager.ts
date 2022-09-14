@@ -2,16 +2,16 @@ import { ethers } from 'hardhat';
 
 import {
   liquidityManager,
-  MODL,
+  modl,
   setupProtocol,
   swapRouter,
-  USDC,
+  usdc,
 } from './helpers/contracts';
 import { advanceAMonth, advanceAnHour, advanceAYear } from './helpers/time';
 import {
   CREDMARK_CONFIGURER,
   CREDMARK_MANAGER,
-  MOCK_GODMODE,
+  TEST_GODMODE,
   setupUsers,
   USER_ALICE,
   USER_BRENT,
@@ -22,6 +22,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { IUniswapV3Pool, Modl } from '../typechain';
+import { MINTER_ROLE } from './helpers/roles';
 
 function expectClose(value: number, expectedValue: number) {
   expect(value).to.greaterThanOrEqual(expectedValue * 0.98);
@@ -64,17 +65,21 @@ describe('LiquidityManager.sol : setup', () => {
 
     while (!token0tested || !token1tested) {
       await setupProtocol();
-      await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, "7500000000000000000000000");
+
+      await modl
+        .connect(TEST_GODMODE)
+        .mint(liquidityManager.address, '7500000000000000000000000');
       await liquidityManager.connect(CREDMARK_MANAGER).start();
+
       expect(await (await liquidityManager.started()).toString()).not.eq('0');
       const uniswapV3Pool = (await ethers.getContractAt(
         'contracts/external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool',
         (await liquidityManager.pool()).toString()
       )) as IUniswapV3Pool;
-      if (MODL.address == (await uniswapV3Pool.token0())) {
+      if (modl.address == (await uniswapV3Pool.token0())) {
         token0tested = true;
       }
-      if (MODL.address == (await uniswapV3Pool.token1())) {
+      if (modl.address == (await uniswapV3Pool.token1())) {
         token1tested = true;
       }
     }
@@ -83,7 +88,9 @@ describe('LiquidityManager.sol : setup', () => {
 
   it('Check Setup reversion states', async () => {
     await setupProtocol();
-    await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, "7500000000000000000000000");
+    await modl
+      .connect(TEST_GODMODE)
+      .mint(liquidityManager.address, '7500000000000000000000000');
 
     expect(await (await liquidityManager.started()).toString()).eq('0');
     await expect(liquidityManager.connect(CREDMARK_MANAGER).start()).not
@@ -91,10 +98,9 @@ describe('LiquidityManager.sol : setup', () => {
     expect(await (await liquidityManager.started()).toString()).not.eq('0');
     await expect(liquidityManager.start()).reverted;
     await expect(liquidityManager.clean('0')).reverted;
-    await USDC.connect(CREDMARK_MANAGER).transfer(
-      liquidityManager.address,
-      '10000000000'
-    );
+    await usdc
+      .connect(CREDMARK_MANAGER)
+      .transfer(liquidityManager.address, '10000000000');
   });
 });
 
@@ -104,21 +110,20 @@ describe('LiquidityManager.sol operation', () => {
     await setupUsers();
     await setupProtocol();
 
-    await USDC.connect(CREDMARK_MANAGER).transfer(
-      USER_ALICE.address,
-      '1000000000000'
-    );
-    await USDC.connect(CREDMARK_MANAGER).transfer(
-      USER_BRENT.address,
-      '1000000000000'
-    );
-    await USDC.connect(CREDMARK_MANAGER).transfer(
-      USER_CAMMY.address,
-      '1000000000000'
-    );
+    await usdc
+      .connect(CREDMARK_MANAGER)
+      .transfer(USER_ALICE.address, '1000000000000');
+    await usdc
+      .connect(CREDMARK_MANAGER)
+      .transfer(USER_BRENT.address, '1000000000000');
+    await usdc
+      .connect(CREDMARK_MANAGER)
+      .transfer(USER_CAMMY.address, '1000000000000');
 
     advanceAnHour();
-    await MODL.connect(MOCK_GODMODE).mint(liquidityManager.address, "7500000000000000000000000");
+    await modl
+      .connect(TEST_GODMODE)
+      .mint(liquidityManager.address, '7500000000000000000000000');
     await liquidityManager.connect(CREDMARK_MANAGER).start();
 
     uniswapV3Pool = (await ethers.getContractAt(
@@ -128,11 +133,11 @@ describe('LiquidityManager.sol operation', () => {
   });
 
   async function swapModl(account: SignerWithAddress, amount: string) {
-    await MODL.connect(account).approve(swapRouter.address, amount);
+    await modl.connect(account).approve(swapRouter.address, amount);
 
     await swapRouter.connect(account).exactInputSingle({
-      tokenIn: MODL.address,
-      tokenOut: USDC.address,
+      tokenIn: modl.address,
+      tokenOut: usdc.address,
       recipient: account.address,
       fee: 10000,
       deadline: 20000000000,
@@ -157,12 +162,12 @@ describe('LiquidityManager.sol operation', () => {
     return price;
   }
 
-  async function swapUSDC(account: SignerWithAddress, amount: string) {
-    await USDC.connect(account).approve(swapRouter.address, amount);
+  async function swapusdc(account: SignerWithAddress, amount: string) {
+    await usdc.connect(account).approve(swapRouter.address, amount);
 
     await swapRouter.connect(account).exactInputSingle({
-      tokenIn: USDC.address,
-      tokenOut: MODL.address,
+      tokenIn: usdc.address,
+      tokenOut: modl.address,
       recipient: account.address,
       fee: 10000,
       deadline: 20000000000,
@@ -173,25 +178,25 @@ describe('LiquidityManager.sol operation', () => {
   }
 
   it('Can swap', async () => {
-    await swapUSDC(USER_ALICE, '1');
+    await swapusdc(USER_ALICE, '1');
     const p0 = await price();
-    await swapUSDC(USER_ALICE, '999999000000');
-    await swapUSDC(USER_BRENT, '1000000000000');
-    await swapUSDC(USER_CAMMY, '1000000000000');
+    await swapusdc(USER_ALICE, '999999000000');
+    await swapusdc(USER_BRENT, '1000000000000');
+    await swapusdc(USER_CAMMY, '1000000000000');
     const p1 = await price();
-    expect(await MODL.balanceOf(USER_ALICE.address)).to.not.eq(0);
+    expect(await modl.balanceOf(USER_ALICE.address)).to.not.eq(0);
 
     await swapModl(
       USER_ALICE,
-      (await MODL.balanceOf(USER_ALICE.address)).toString()
+      (await modl.balanceOf(USER_ALICE.address)).toString()
     );
     await swapModl(
       USER_BRENT,
-      (await MODL.balanceOf(USER_BRENT.address)).toString()
+      (await modl.balanceOf(USER_BRENT.address)).toString()
     );
     await swapModl(
       USER_CAMMY,
-      (await MODL.balanceOf(USER_CAMMY.address)).toString()
+      (await modl.balanceOf(USER_CAMMY.address)).toString()
     );
 
     const slot0 = await uniswapV3Pool.slot0();
@@ -201,17 +206,13 @@ describe('LiquidityManager.sol operation', () => {
   });
   it('Can pull liquidity after 2 years.', async () => {
     await expect(
-      liquidityManager
-        .connect(CREDMARK_CONFIGURER)
-        .transferPosition()
+      liquidityManager.connect(CREDMARK_CONFIGURER).transferPosition()
     ).reverted;
     await advanceAYear();
     await advanceAYear();
     await advanceAMonth();
     await expect(
-      liquidityManager
-        .connect(CREDMARK_CONFIGURER)
-        .transferPosition()
+      liquidityManager.connect(CREDMARK_CONFIGURER).transferPosition()
     ).not.reverted;
   });
 });

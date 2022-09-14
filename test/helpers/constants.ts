@@ -1,6 +1,6 @@
 export let chainlinkAddresses = {
   ETHUSD: '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419',
-  USDCUSD: '0x8fffffd4afb6115b954bd326cbe7b4ba576818f6',
+  usdcUSD: '0x8fffffd4afb6115b954bd326cbe7b4ba576818f6',
 };
 
 export let univ3Addresses = {

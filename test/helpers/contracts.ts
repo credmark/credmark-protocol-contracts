@@ -1,4 +1,5 @@
 import { ethers } from 'hardhat';
+import './bigNumber';
 import {
   Modl,
   ModlAllowance,
@@ -22,12 +23,9 @@ import {
   CREDMARK_DEPLOYER,
   CREDMARK_MANAGER,
   CREDMARK_TREASURY_MULTISIG,
-  MOCK_GODMODE,
   CREDMARK_CONFIGURER,
-  USER_ALICE,
-  USER_CAMMY,
-  USER_BRENT,
-  USER_DAVID,
+  TEST_GODMODE,
+  CREDMARK_ROLE_ASSIGNER,
 } from './users';
 
 import {
@@ -37,393 +35,356 @@ import {
   MINTER_ROLE,
   DEFAULT_ADMIN_ROLE,
 } from './roles';
+
 import { StableTokenSubscription } from '../../typechain/StableTokenSubscription';
 import { VariableTokenSubscription } from '../../typechain/VariableTokenSubscription';
+import { BigNumber, BytesLike } from 'ethers';
+import { Contract } from 'hardhat/internal/hardhat-network/stack-traces/model';
 
-let MODL: Modl;
-let MODLAllowance: ModlAllowance;
-let CMK: MockCmk;
-let USDC: MockCmk;
+let modl: Modl;
+let modlAllowance: ModlAllowance;
+let cmk: MockCmk;
+let usdc: MockCmk;
 let liquidityManager: LiquidityManager;
 let swapRouter: ISwapRouter;
 let nonFungiblePositionManager: INonfungiblePositionManager;
-let rewardsIssuer: SubscriptionRewardsIssuer;
-let cmkSubscriptionRewardsIssuer: SubscriptionRewardsIssuer;
+
+let rewards: SubscriptionRewardsIssuer;
+let rewardsCmk: SubscriptionRewardsIssuer;
+let rewardsNft: ModelNftRewards;
+
 let mockUsdcPriceOracle: ManagedPriceOracle;
-let mockModlPriceOracle: ManagedPriceOracle;
+let modlOracle: ManagedPriceOracle;
 let mockCmkPriceOracle: ManagedPriceOracle;
 let modelNft: ModelNft;
-let modelNftRewards: ModelNftRewards;
+
 let revenueTreasury: RevenueTreasury;
 
-let subscriptionBasic: ModlSubscription;
-let subscriptionPro: ModlSubscription;
+let subBasic: ModlSubscription;
+let subPro: ModlSubscription;
 let subscriptionStable: StableTokenSubscription;
-let subscriptionSuperPro: ModlSubscription;
-let cmkSubscription: CmkSubscription;
-let wethSubscription: VariableTokenSubscription;
+let subSuper: ModlSubscription;
+let subCmk: CmkSubscription;
 
-let lTime: Time;
+function configurableContracts() {
+  return [
+    modl,
+    modelNft,
+    modlAllowance,
+    revenueTreasury,
+    rewards,
+    rewardsCmk,
+    subBasic,
+    subPro,
+    subSuper,
+    subCmk,
+  ];
+}
+
+function managedContracts() {
+  return [modlOracle, modelNft, modl, rewardsNft, liquidityManager];
+}
+
+function contracts() {
+  return [
+    modl,
+    modelNft,
+    modlAllowance,
+    revenueTreasury,
+    liquidityManager,
+    rewards,
+    rewardsCmk,
+    modlOracle,
+    subBasic,
+    subPro,
+    subSuper,
+    subCmk,
+  ];
+}
+
+function subscriptions() {
+  return [subBasic, subPro, subSuper];
+}
+
+let timeLibrary: Time;
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-async function deployContracts() {
-  const TimeFactory = await ethers.getContractFactory('Time');
-  lTime = (await TimeFactory.deploy()) as Time;
-  const ModlFactory = await ethers.getContractFactory('Modl');
-  const ModlSubscriptionFactory = await ethers.getContractFactory(
-    'ModlSubscription',
-    { libraries: { Time: lTime.address } }
-  );
-  const StableTokenSubscriptionFactory = await ethers.getContractFactory(
-    'StableTokenSubscription',
-    { libraries: { Time: lTime.address } }
-  );
-  const CmkSubscriptionFactory = await ethers.getContractFactory(
-    'CmkSubscription',
-    { libraries: { Time: lTime.address } }
-  );
-  const ModlAllowanceFactory = await ethers.getContractFactory(
-    'ModlAllowance',
-    {
-      libraries: { Time: lTime.address },
-    }
-  );
-  const LiquidityManagerFactory = await ethers.getContractFactory(
-    'LiquidityManager'
-  );
-  const MockCmkFactory = await ethers.getContractFactory(
-    'MockCmk',
-    CREDMARK_DEPLOYER
-  );
-  const MockUsdcFactory = await ethers.getContractFactory(
-    'MockUsdc',
-    CREDMARK_DEPLOYER
-  );
-  const SubscriptionRewardsIssuerFactory = await ethers.getContractFactory(
-    'SubscriptionRewardsIssuer',
-    {
-      libraries: { Time: lTime.address },
-    }
-  );
-  const ManagedPriceOracleFactory = await ethers.getContractFactory(
-    'ManagedPriceOracle'
-  );
-  const ModelNftRewardsFactory = await ethers.getContractFactory(
-    'ModelNftRewards'
-  );
-  const ModelNftFactory = await ethers.getContractFactory('ModelNft');
-  const RevenueTreasuryFactory = await ethers.getContractFactory(
-    'RevenueTreasury'
-  );
+async function mockTokens() {
+  /* Deploy Mock Tokens */
 
-  CMK = (await MockCmkFactory.deploy()) as MockCmk;
-  USDC = (await MockUsdcFactory.deploy()) as MockUsdc;
-  MODL = (await ModlFactory.deploy()) as Modl;
+  const FCmk = await ethers.getContractFactory('MockCmk');
+  const FUsdc = await ethers.getContractFactory('MockUsdc');
+  cmk = (await FCmk.deploy()) as MockCmk;
+  usdc = (await FUsdc.deploy()) as MockUsdc;
 
-  MODLAllowance = (await ModlAllowanceFactory.deploy({
-    modlAddress: MODL.address,
-  })) as ModlAllowance;
-  revenueTreasury = await RevenueTreasuryFactory.deploy({
-    modlAddress: MODL.address,
+  /* Grant Mock Permissions */
+
+  await cmk.grantRole(MINTER_ROLE, TEST_GODMODE.address);
+  await usdc.grantRole(MINTER_ROLE, TEST_GODMODE.address);
+
+  /* Mint Mock Tokens */
+
+  await cmk
+    .connect(TEST_GODMODE)
+    .mint(TEST_GODMODE.address, BigNumber.from(10_000_000).toWei());
+  await cmk
+    .connect(TEST_GODMODE)
+    .mint(TEST_GODMODE.address, BigNumber.from(10_000_000).toWei(6));
+}
+
+async function deployLibraries() {
+  const FTime = await ethers.getContractFactory('Time');
+  timeLibrary = (await FTime.deploy()) as Time;
+}
+
+async function deployContractsDependency0() {
+  const FModl = await ethers.getContractFactory('Modl');
+  const FNft = await ethers.getContractFactory('ModelNft');
+  modl = (await FModl.deploy()) as Modl;
+  modelNft = (await FNft.deploy()) as ModelNft;
+}
+
+async function deployContractsDependency1() {
+  let FMA = await ethers.getContractFactory('ModlAllowance', {
+    libraries: { Time: timeLibrary.address },
   });
+  let FRI = await ethers.getContractFactory('SubscriptionRewardsIssuer', {
+    libraries: { Time: timeLibrary.address },
+  });
+  const FLM = await ethers.getContractFactory('LiquidityManager');
+  const FRT = await ethers.getContractFactory('RevenueTreasury');
 
-  liquidityManager = (await LiquidityManagerFactory.deploy({
-    modlAddress: MODL.address,
-    usdcAddress: USDC.address,
+  modlAllowance = (await FMA.deploy({
+    modlAddress: modl.address,
+  })) as ModlAllowance;
+
+  rewards = (await FRI.deploy({
+    modlAddress: modl.address,
+  })) as SubscriptionRewardsIssuer;
+
+  rewardsCmk = (await FRI.deploy({
+    modlAddress: modl.address,
+  })) as SubscriptionRewardsIssuer;
+
+  revenueTreasury = (await FRT.deploy({
+    modlAddress: modl.address,
+  })) as RevenueTreasury;
+
+  liquidityManager = (await FLM.deploy({
+    modlAddress: modl.address,
+    usdcAddress: usdc.address,
     launchLiquidity: '7500000000000000000000000',
     lockup: (2 * 365 * 86400).toString(),
     revenueTreasury: revenueTreasury.address,
   })) as LiquidityManager;
+}
 
-  rewardsIssuer = (await SubscriptionRewardsIssuerFactory.deploy({
-    modlAddress: MODL.address,
-  })) as SubscriptionRewardsIssuer;
+async function deployContractsDependency2() {
+  const FNftRew = await ethers.getContractFactory('ModelNftRewards');
+  const FManOra = await ethers.getContractFactory('ManagedPriceOracle');
 
-  cmkSubscriptionRewardsIssuer = (await SubscriptionRewardsIssuerFactory.deploy(
-    {
-      modlAddress: MODL.address,
-    }
-  )) as SubscriptionRewardsIssuer;
-
-  modelNft = (await ModelNftFactory.deploy()) as ModelNft;
-  modelNftRewards = await ModelNftRewardsFactory.deploy({
-    modlAddress: MODL.address,
-    modlAllowanceAddress: MODLAllowance.address,
+  rewardsNft = await FNftRew.deploy({
+    modlAddress: modl.address,
+    modlAllowanceAddress: modlAllowance.address,
     modelNftAddress: modelNft.address,
   });
-  mockModlPriceOracle = await ManagedPriceOracleFactory.deploy({
-    tokenAddress: MODL.address,
+
+  modlOracle = await FManOra.deploy({
+    tokenAddress: modl.address,
     initialPrice: 100000000,
   });
+}
 
-  // mockEthPriceOracle = await ManagedPriceOracleFactory.deploy({
-  //   tokenAddress: MODL.address,
-  //   initialPrice: 175000000000,
-  // });
+async function deployContractsDependency3() {
+  const FSubModl = await ethers.getContractFactory('ModlSubscription', {
+    libraries: { Time: timeLibrary.address },
+  });
+  const FSubCmk = await ethers.getContractFactory('CmkSubscription', {
+    libraries: { Time: timeLibrary.address },
+  });
 
-  subscriptionBasic = (await ModlSubscriptionFactory.deploy(
+  subBasic = (await FSubModl.deploy(
     {
-      tokenAddress: MODL.address,
-      rewardsIssuerAddress: rewardsIssuer.address,
+      tokenAddress: modl.address,
+      rewardsIssuerAddress: rewards.address,
     },
-    mockModlPriceOracle.address
+    modlOracle.address
   )) as ModlSubscription;
 
-  subscriptionPro = (await ModlSubscriptionFactory.deploy(
+  subPro = (await FSubModl.deploy(
     {
-      tokenAddress: MODL.address,
-      rewardsIssuerAddress: rewardsIssuer.address,
+      tokenAddress: modl.address,
+      rewardsIssuerAddress: rewards.address,
     },
-    mockModlPriceOracle.address
+    modlOracle.address
   )) as ModlSubscription;
 
-  subscriptionSuperPro = (await ModlSubscriptionFactory.deploy(
+  subSuper = (await FSubModl.deploy(
     {
-      tokenAddress: MODL.address,
-      rewardsIssuerAddress: rewardsIssuer.address,
+      tokenAddress: modl.address,
+      rewardsIssuerAddress: rewards.address,
     },
-    mockModlPriceOracle.address
+    modlOracle.address
   )) as ModlSubscription;
 
-  subscriptionStable = (await StableTokenSubscriptionFactory.deploy(
-    {
-      tokenAddress: USDC.address,
-      rewardsIssuerAddress: rewardsIssuer.address,
-    },
-    100000000,
-    6
-  )) as StableTokenSubscription;
-
-  cmkSubscription = (await CmkSubscriptionFactory.deploy({
-    tokenAddress: CMK.address,
-    rewardsIssuerAddress: cmkSubscriptionRewardsIssuer.address,
+  subCmk = (await FSubCmk.deploy({
+    tokenAddress: cmk.address,
+    rewardsIssuerAddress: rewardsCmk.address,
   })) as CmkSubscription;
 }
 
-async function setupExternalEnvironment() {
-  swapRouter = (await ethers.getContractAt(
-    'ISwapRouter',
-    '0xE592427A0AEce92De3Edee1F18E0157C05861564'
-  )) as ISwapRouter;
-
-  nonFungiblePositionManager = (await ethers.getContractAt(
-    'INonfungiblePositionManager',
-    '0xC36442b4a4522E871399CD717aBDD847Ab11FE88'
-  )) as INonfungiblePositionManager;
+async function grantConfigurer() {
+  for (var contract of configurableContracts()) {
+    await contract.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
+  }
+}
+async function grantManager() {
+  for (var contract of managedContracts()) {
+    await contract.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
+  }
+}
+async function grantAdmin() {
+  for (var contract of managedContracts()) {
+    await contract.grantRole(
+      DEFAULT_ADMIN_ROLE,
+      CREDMARK_ROLE_ASSIGNER.address
+    );
+  }
+}
+async function grantTrustedContract() {
+  for (var contract of subscriptions()) {
+    await rewards.grantRole(TRUSTED_CONTRACT_ROLE, contract.address);
+  }
+  await rewardsCmk.grantRole(TRUSTED_CONTRACT_ROLE, subCmk.address);
 }
 
-async function grantPermissions() {
-  // CONFIGURER
-  await MODL.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-  await MODLAllowance.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-  await liquidityManager.grantRole(
-    CONFIGURER_ROLE,
-    CREDMARK_CONFIGURER.address
-  );
-  await subscriptionBasic.grantRole(
-    CONFIGURER_ROLE,
-    CREDMARK_CONFIGURER.address
-  );
-  await subscriptionPro.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-  await subscriptionSuperPro.grantRole(
-    CONFIGURER_ROLE,
-    CREDMARK_CONFIGURER.address
-  );
-  await subscriptionStable.grantRole(
-    CONFIGURER_ROLE,
-    CREDMARK_CONFIGURER.address
-  );
-  await cmkSubscription.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-  await rewardsIssuer.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-  await cmkSubscriptionRewardsIssuer.grantRole(
-    CONFIGURER_ROLE,
-    CREDMARK_CONFIGURER.address
-  );
-  await revenueTreasury.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-  await mockModlPriceOracle.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
-  await modelNft.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
-  await liquidityManager.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
-
-  await modelNft.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
-
-  await MODL.grantRole(MINTER_ROLE, MODLAllowance.address);
-  await MODL.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
-  await MODL.grantRole(MINTER_ROLE, rewardsIssuer.address);
-  await MODL.grantRole(MINTER_ROLE, liquidityManager.address);
-
-  await rewardsIssuer.grantRole(
-    TRUSTED_CONTRACT_ROLE,
-    subscriptionBasic.address
-  );
-  await rewardsIssuer.grantRole(TRUSTED_CONTRACT_ROLE, subscriptionPro.address);
-  await rewardsIssuer.grantRole(
-    TRUSTED_CONTRACT_ROLE,
-    subscriptionStable.address
-  );
-  await rewardsIssuer.grantRole(
-    TRUSTED_CONTRACT_ROLE,
-    subscriptionSuperPro.address
-  );
-  await cmkSubscriptionRewardsIssuer.grantRole(
-    TRUSTED_CONTRACT_ROLE,
-    cmkSubscription.address
-  );
-
-  await CMK.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
-  await CMK.grantRole(DEFAULT_ADMIN_ROLE, MOCK_GODMODE.address);
-
-  await USDC.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
-  await USDC.grantRole(DEFAULT_ADMIN_ROLE, MOCK_GODMODE.address);
-
-  await MODL.grantRole(MINTER_ROLE, MOCK_GODMODE.address);
-  await MODL.grantRole(DEFAULT_ADMIN_ROLE, MOCK_GODMODE.address);
-
-  await modelNftRewards.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
+async function grantMinter() {
+  await modl.grantRole(MINTER_ROLE, rewards.address);
+  await modl.grantRole(MINTER_ROLE, rewardsCmk.address);
+  await modl.grantRole(MINTER_ROLE, modlAllowance.address);
+  await modl.grantRole(MINTER_ROLE, TEST_GODMODE.address);
 }
 
 async function configure() {
-  await MODLAllowance.connect(CREDMARK_CONFIGURER).configure({
-    ceiling: '1000000000000000000000000',
+  await modlAllowance.connect(CREDMARK_CONFIGURER).configure({
+    ceiling: BigNumber.from(500_000).toWei(),
   });
-  // ALLOWANCES
-  await rewardsIssuer
+
+  await modlAllowance
     .connect(CREDMARK_CONFIGURER)
-    .configure({ amountPerAnnum: '250000000000000000000000' });
-  await cmkSubscriptionRewardsIssuer
+    .update(
+      CREDMARK_TREASURY_MULTISIG.address,
+      BigNumber.from(250_000).toWei()
+    );
+  await modlAllowance
     .connect(CREDMARK_CONFIGURER)
-    .configure({ amountPerAnnum: '250000000000000000000000' });
+    .update(rewardsNft.address, BigNumber.from(250_000).toWei());
+
   await revenueTreasury.connect(CREDMARK_CONFIGURER).configure({
     daoAddress: CREDMARK_TREASURY_MULTISIG.address,
     modlPercentToDao: '0',
   });
 
-  await MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-    modelNftRewards.address,
-    '250000000000000000000000'
-  );
-  await MODLAllowance.connect(CREDMARK_CONFIGURER).update(
-    CREDMARK_TREASURY_MULTISIG.address,
-    '250000000000000000000000'
-  );
+  await rewards.connect(CREDMARK_CONFIGURER).configure({
+    amountPerAnnum: BigNumber.from(250_000).toWei(),
+  });
+  await rewardsCmk.connect(CREDMARK_CONFIGURER).configure({
+    amountPerAnnum: BigNumber.from(250_000).toWei(),
+  });
 
-  await subscriptionBasic.connect(CREDMARK_CONFIGURER).configure({
-    lockup: '86400',
+  await subBasic.connect(CREDMARK_CONFIGURER).configure({
+    lockup: 86400 * 1,
     fee: '0',
     multiplier: '100',
     floorPrice: '100000000',
     treasury: revenueTreasury.address,
   });
 
-  await subscriptionPro.connect(CREDMARK_CONFIGURER).configure({
-    lockup: '2592000',
-    fee: '500000000000000000000',
+  await subPro.connect(CREDMARK_CONFIGURER).configure({
+    lockup: 86400 * 30,
+    fee: BigNumber.from(500).toWei(),
     multiplier: '200',
     floorPrice: '100000000',
     treasury: revenueTreasury.address,
   });
 
-  await subscriptionStable.connect(CREDMARK_CONFIGURER).configure({
-    lockup: '2592000',
-    fee: '500000000',
-    multiplier: '100',
-    floorPrice: '100000000',
-    treasury: revenueTreasury.address,
-  });
-
-  await subscriptionSuperPro.connect(CREDMARK_CONFIGURER).configure({
-    lockup: '2592000',
-    fee: '5000000000000000000000',
+  await subSuper.connect(CREDMARK_CONFIGURER).configure({
+    lockup: 86400 * 30,
+    fee: BigNumber.from(5000).toWei(),
     multiplier: '400',
     floorPrice: '100000000',
     treasury: revenueTreasury.address,
   });
 
-  await cmkSubscription.connect(CREDMARK_CONFIGURER).configure({
-    lockup: '2592000',
-    fee: '2500000000000000000000',
+  await subCmk.connect(CREDMARK_CONFIGURER).configure({
+    lockup: 86400 * 30,
+    fee: BigNumber.from(250).toWei(),
     multiplier: '100',
     floorPrice: '100000000',
     treasury: revenueTreasury.address,
   });
 }
 
-async function mockTokens() {
-  await CMK.connect(MOCK_GODMODE).mint(
-    CREDMARK_MANAGER.address,
-    '50000000000000000000000000'
-  );
-  await CMK.connect(MOCK_GODMODE).mint(
-    CREDMARK_TREASURY_MULTISIG.address,
-    '50000000000000000000000000'
-  );
-
-  await USDC.connect(MOCK_GODMODE).mint(
-    CREDMARK_MANAGER.address,
-    '50000000000000'
-  );
-}
-
-async function printProtocol() {
-  console.log(MODL.address, 'MODL');
-
-  console.log(MODLAllowance.address, 'Modl Allowance');
-  console.log(rewardsIssuer.address, 'Rewards Issuer');
-  console.log(cmkSubscriptionRewardsIssuer.address, 'CMK Rewards Issuer');
-  console.log(liquidityManager.address, 'liquidity Manager');
-  console.log(subscriptionBasic.address, 'subscription: MODL basic');
-  console.log(subscriptionPro.address, 'subscription: MODL pro');
-  console.log(subscriptionSuperPro.address, 'subscription: MODL super Pro');
-  console.log(subscriptionStable.address, 'subscription: stable');
-  console.log(cmkSubscription.address, 'subscription: CMK');
-  console.log(modelNft.address, 'Model NFT');
-  console.log(modelNftRewards.address, 'Model NFT rewards');
-
-  console.log(CREDMARK_DEPLOYER.address, 'deployer');
-  console.log(CREDMARK_CONFIGURER.address, 'configurer');
-  console.log(CREDMARK_MANAGER.address, 'manager');
-  console.log(USER_ALICE.address, 'alice');
-  console.log(USER_BRENT.address, 'brent');
-  console.log(USER_CAMMY.address, 'cammy');
-  console.log(USER_DAVID.address, 'david');
-
-  console.log(USDC.address, 'USDC (Mock)');
-  console.log(CMK.address, 'CMK (Mock)');
-}
-
 async function setupProtocol() {
   await setupUsers();
-  await setupExternalEnvironment();
-  await deployContracts();
-  await grantPermissions();
-  await configure();
 
+  await deployContracts();
+
+  await grantPermissions();
+
+  await configure();
+}
+
+async function deployContracts() {
   await mockTokens();
+
+  await deployLibraries();
+
+  await deployContractsDependency0();
+  await deployContractsDependency1();
+  await deployContractsDependency2();
+  await deployContractsDependency3();
+}
+
+async function grantPermissions() {
+  await grantAdmin();
+  await grantConfigurer();
+  await grantManager();
+  await grantTrustedContract();
+  await grantMinter();
 }
 
 export {
   setupProtocol,
   deployContracts,
   grantPermissions,
+  grantAdmin,
+  grantConfigurer,
+  grantManager,
+  grantTrustedContract,
+  grantMinter,
   configure,
-  MODL,
-  CMK,
-  USDC,
-  MODLAllowance,
+  modl,
+  cmk,
+  usdc,
+  modlAllowance,
   liquidityManager,
   swapRouter,
   nonFungiblePositionManager,
-  lTime,
-  subscriptionBasic,
-  subscriptionPro,
+  timeLibrary,
+  subBasic,
+  subPro,
   subscriptionStable,
-  subscriptionSuperPro,
-  rewardsIssuer,
+  subSuper,
+  rewards,
   mockCmkPriceOracle,
-  mockModlPriceOracle,
+  modlOracle,
   mockUsdcPriceOracle,
   modelNft,
-  modelNftRewards,
+  rewardsNft,
+  rewardsCmk,
+  subCmk,
   revenueTreasury,
   NULL_ADDRESS,
 };

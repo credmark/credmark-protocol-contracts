@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { setupProtocol, MODL } from './helpers/contracts';
+import { setupProtocol, modl } from './helpers/contracts';
 import { setupUsers } from './helpers/users';
 
 describe('Modl.sol', () => {
@@ -10,7 +10,7 @@ describe('Modl.sol', () => {
   });
 
   it('Modl: totalSupply should initialize to 0', async () => {
-    const totalSupply = await MODL.functions.totalSupply();
+    const totalSupply = await modl.functions.totalSupply();
     expect(totalSupply.toString()).to.equal('0');
   });
 });
