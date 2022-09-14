@@ -1,25 +1,148 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
-import { ethers } from "hardhat";
+import { ethers } from 'hardhat';
 
 async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
+  /*  
+    >>REQUIRED ADDRESSES<<
+      Credmark Multisig Treasury
+      Credmark Multisig Manager
+      Credmark Multisig Configurer
+      Credmark Multisig Role Assigner
+      CMK
+      
+    >>DEPLOY CONTRACTS<<
 
-  // We get the contract to deploy
-  // const Greeter = await ethers.getContractFactory("Greeter");
-  // const greeter = await Greeter.deploy("Hello, Hardhat!");
+      Deploy Contracts Dep 0
+        Time
+        Modl
+        ModelNft
+      
+      Deploy Contracts Dep 1
+        ModlAllowance
+        RewardsIssuers
+        RevenueTreasury
+        LiquidityManager
 
-  // await greeter.deployed();
+      Deploy Contracts Dep 2
+        ModlNftRewards
+        ManagedPriceOracle
 
-  // console.log("Greeter deployed to:", greeter.address);
+      Deploy Contracts Dep 3
+        Subscriptions
+          Basic (ModlSubscription)
+          Pro (ModlSubscription)
+          Super Pro (ModlSubscription)
+          Cmk (CmkSubscription)
+
+    >>GRANT PERMISSIONS<<
+
+      Grant Admin Permissions
+        Credmark Multisig Role Assigner
+
+      Grant Configurer Permissions 
+        Modl Allowance
+        Rewards Issuer
+        Cmk Rewards Issuer
+        Revenue Treasury
+        Basic Sub
+        Pro Sub
+        Super Pro Sub
+        Model Nft
+
+          Deployer 
+          Credmark Multisig Configurer
+        
+      Grant Manager Permissions
+        Managed Price Oracle
+        Model Nft
+        Model Nft Rewards
+
+          Credmark Multisig Manager
+
+        Liquidity Manager
+          Credmark Multisig Manager
+          Deployer
+
+      Grant Trusted Contract Permissions
+        Rewards Issuer
+          Basic
+          Pro
+          SuperPro
+
+        Cmk Rewards issuer
+          Cmk
+
+      Grant Minter Permissions:
+        MODL 
+          Rewards Issuer
+          Modl Allowance
+          Cmk Rewards Issuer
+          Deployer
+
+    >>CONFIGURE<<
+
+      Modl Allowance
+      Revenue Treasury
+      Issuers
+        Rewards Issuer
+        Cmk Rewards Issuer
+      Subscriptions
+        Basic Subscription
+        Pro Subscription
+        Super Pro Subscription
+        Cmk Subscription
+    
+    >>PREPARE<<
+
+      Mint Modl for Liquidity Manager
+      Set Modl Oracle price
+
+    >>CLEANUP<<
+    
+      Revoke Deployer Credentials
+        Admin
+          Modl
+          ModelNft
+          ModlAllowance
+          CMK Rewards Issuer
+          Rewards Issuer
+          Revenue Treasury
+          Liquidity Manager
+          Modl Nft Rewards
+          Managed Price Oracle
+          Basic Subscription
+          Pro Subscription
+          Super Pro Subscription
+          Cmk Subscription
+        Configurer
+          Modl Allowance
+          Rewards Issuer
+          Cmk Rewards Issuer
+          Revenue Treasury
+          Basic Sub
+          Pro Sub
+          Super Pro Sub
+          Model Nft
+        Manager
+          Managed Price Oracle
+          Model Nft
+          Model Nft Rewards
+        Minter
+          Modl
+    
+    >>LAUNCH<<
+      Start Liquidity Manager
+
+      Optional:
+
+        Deploy Contracts (optional): 
+          Chainlink Price Oracle (WETH)
+        Deploy Contracts (optional): 
+          USDC Subscription, 
+          WETH Subscription
+
+        Rewards Issuer - WETH (optional)
+        Rewards Issuer - USDC (optional)
+*/
 }
 
 // We recommend this pattern to be able to use async/await everywhere
