@@ -7,20 +7,26 @@ export interface LiquidityManagerConfig {
 
 export interface SubscriptionConfig {
   name: string;
-  token: string;
-  oracle: string;
-  treasury: string;
   lockup: BigNumberish;
   fee: BigNumberish;
   multiplier: BigNumberish;
-  subscribable: boolean;
+  token_name: string;
+  treasury_name: string;
+}
+
+export interface VariableSubscriptionConfig extends SubscriptionConfig {
+  oracle_name: string;
   floorPrice: BigNumberish;
-  ceilingPrice: BigNumberish;
+}
+
+export interface StableSubscriptionConfig extends SubscriptionConfig {
+  tokenDecimals: Number;
 }
 
 export interface RewardsIssuerConfig {
   amountPerAnnum: BigNumberish;
-  subscriptions: Array<SubscriptionConfig>;
+  variableSubscriptions: Array<VariableSubscriptionConfig>;
+  stableSubscriptions: Array<StableSubscriptionConfig>;
 }
 
 export interface RevenueTreasuryConfig {
@@ -39,7 +45,7 @@ export interface ModlAllowanceConfig {
 }
 
 export interface ProtocolConfig {
-  liquidityManager: LiquidityManagerConfig;
+  liquidityManagers: LiquidityManagerConfig;
   rewardsIssuerConfig: Array<RewardsIssuerConfig>;
   modlAllowance: ModlAllowanceConfig;
 }

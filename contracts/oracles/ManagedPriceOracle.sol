@@ -20,7 +20,7 @@ contract ManagedPriceOracle is IPriceOracle, CManagedPriceOracle {
         return _price;
     }
 
-    function decimals() external view override returns (uint8) {
+    function decimals() external pure override returns (uint8) {
         return 8;
     }
 }
