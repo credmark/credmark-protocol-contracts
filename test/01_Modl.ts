@@ -11,6 +11,7 @@ import {
   USER_ALICE,
   USER_BRENT,
   USER_CAMMY,
+  USER_DAVID,
 } from './helpers/users';
 
 describe('Modl', () => {
@@ -137,6 +138,21 @@ describe('Modl', () => {
       expect(await (await modl.balanceOf(USER_ALICE.address)).scaledInt(18)).eq(
         99700
       );
+    });
+    it('#approve & burnFrom', async () => {
+      await expect(
+        modl
+          .connect(USER_CAMMY)
+          .approve(USER_DAVID.address, BigNumber.from(100).toWei(18))
+      ).not.reverted;
+      await expect(
+        modl
+          .connect(USER_DAVID)
+          .burnFrom(USER_CAMMY.address, BigNumber.from(100).toWei(18))
+      ).not.reverted;
+      await expect(
+        await (await modl.balanceOf(USER_CAMMY.address)).scaledInt(18)
+      ).eq(0);
     });
   });
 });

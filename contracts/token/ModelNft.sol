@@ -12,10 +12,6 @@ import "../configuration/Permissioned.sol";
 contract ModelNft is ERC721, Pausable, ERC721Enumerable, Permissioned {
     constructor() ERC721("Credmark Model NFT", "cmModelNFT") {}
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "https://api.credmark.com/v1/meta/model/";
-    }
-
     function pause() external configurer {
         _pause();
     }

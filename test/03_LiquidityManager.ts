@@ -2,7 +2,14 @@ import { ethers } from 'hardhat';
 import './helpers/bigNumber';
 
 import {
+  configure,
+  deployContractsDependency0,
+  deployContractsDependency1,
+  deployContractsDependency2,
+  deployContractsDependency3,
+  grantPermissions,
   liquidityManager,
+  mockTokens,
   modl,
   revenueTreasury,
   setupProtocol,
@@ -25,10 +32,9 @@ import {
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
-import { IUniswapV3Pool, Modl } from '../typechain';
-import { MINTER_ROLE } from './helpers/roles';
 import { NULL_ADDRESS, univ3Addresses } from './helpers/constants';
 import { buyModl, poolPrice, sellModl } from './helpers/swap';
+import { IUniswapV3Pool } from '../typechain';
 
 function expectClose(value: number, expectedValue: number) {
   expect(value).to.greaterThanOrEqual(expectedValue * 0.98);
@@ -115,33 +121,45 @@ describe('LiquidityManager.sol', () => {
     });
   });
 
-  it('can start in both orientations', async () => {
-    let token0tested = false;
-    let token1tested = false;
-
-    while (!token0tested || !token1tested) {
+  describe('liquidity pool has multiple orientations', async () => {
+    before(async () => {
+      await setupUsers();
+    });
+    it('can start in token 0 orientation', async () => {
       await setupProtocol();
+      while (modl.address < usdc.address) {
+        await setupProtocol();
+      }
+      await modl
+        .connect(TEST_GODMODE)
+        .mint(liquidityManager.address, BigNumber.from(7_500_000).toWei());
+      await liquidityManager.connect(CREDMARK_MANAGER).start();
+      expect(await (await liquidityManager.started()).toNumber()).gt(
+        1650000000
+      );
+
+      let poolAddress = await liquidityManager.pool();
+      let pool = await ethers.getContractAt('IUniswapV3Pool', poolAddress);
+      expectClose(await poolPrice(pool.address), 1);
+    });
+    it('can start in token 1 orientation', async () => {
+      await setupProtocol();
+      while (modl.address > usdc.address) {
+        await setupProtocol();
+      }
 
       await modl
         .connect(TEST_GODMODE)
         .mint(liquidityManager.address, BigNumber.from(7_500_000).toWei());
       await liquidityManager.connect(CREDMARK_MANAGER).start();
-
       expect(await (await liquidityManager.started()).toNumber()).gt(
         1650000000
       );
+
       let poolAddress = await liquidityManager.pool();
       let pool = await ethers.getContractAt('IUniswapV3Pool', poolAddress);
-
       expectClose(await poolPrice(pool.address), 1);
-
-      if (modl.address == (await pool.token0())) {
-        token0tested = true;
-      }
-      if (modl.address == (await pool.token1())) {
-        token1tested = true;
-      }
-    }
+    });
   });
 });
 

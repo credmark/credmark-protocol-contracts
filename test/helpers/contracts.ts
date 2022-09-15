@@ -372,6 +372,11 @@ async function grantPermissions() {
 export {
   setupProtocol,
   deployContracts,
+  deployContractsDependency0,
+  deployContractsDependency1,
+  deployContractsDependency2,
+  deployContractsDependency3,
+  mockTokens,
   grantPermissions,
   grantAdmin,
   grantConfigurer,

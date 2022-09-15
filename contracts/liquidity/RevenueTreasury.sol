@@ -4,12 +4,17 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import "../interfaces/IRevenueTreasury.sol";
 import "../configuration/Permissioned.sol";
 import "../configuration/CRevenueTreasury.sol";
 
-contract RevenueTreasury is IRevenueTreasury, CRevenueTreasury {
+contract RevenueTreasury is
+    IRevenueTreasury,
+    CRevenueTreasury,
+    IERC721Receiver
+{
     using SafeERC20 for IERC20;
 
     constructor(ConstructorParams memory params) CRevenueTreasury(params) {}
@@ -35,5 +40,14 @@ contract RevenueTreasury is IRevenueTreasury, CRevenueTreasury {
             config.daoAddress,
             tokenId
         );
+    }
+
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
     }
 }

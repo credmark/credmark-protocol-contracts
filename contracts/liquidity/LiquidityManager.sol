@@ -21,54 +21,52 @@ contract LiquidityManager is
     ReentrancyGuard
 {
     using SafeERC20 for IERC20;
-
-    constructor(ConstructorParams memory params) CLiquidityManager(params) {}
-
+    IUniswapV3Factory private constant FACT =
+        IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
     INonfungiblePositionManager private constant NFPM =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     ISwapRouter private constant SWAP =
         ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-    IUniswapV3Factory private constant FACT =
-        IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
 
-    IUniswapV3Pool public pool;
+    IUniswapV3Pool public immutable pool;
     uint256 public liquidityTokenId;
     uint128 public currentLiquidity;
     uint24 public constant POOL_FEE = 10000;
 
-    int24 private tickUpper = 870000;
-    int24 private tickLower = -870000;
-    int24 private tickInit = -276300;
+    int24 private immutable tickUpper;
+    int24 private immutable tickLower;
+    int24 private immutable tickInit;
+    address private immutable token0;
+    address private immutable token1;
 
     uint256 public started = 0;
 
-    function start() external override nonReentrant manager {
-        require(started == 0, "S");
-        uint256 currentBlockTimestamp = Time.current();
-        started = currentBlockTimestamp;
-
-        uint256 modlBalance = modl.balanceOf(address(this));
-        require(modlBalance > 0, "ZB");
+    constructor(ConstructorParams memory params) CLiquidityManager(params) {
+        bool ist0 = params.modlAddress < params.usdcAddress;
+        token0 = ist0 ? address(modl) : address(usdc);
+        token1 = ist0 ? address(usdc) : address(modl);
+        tickUpper = ist0 ? int24(870000) : int24(276200);
+        tickLower = ist0 ? int24(-276200) : int24(-870000);
+        tickInit = ist0 ? int24(-276300) : int24(276300);
 
         address poolAddress = FACT.createPool(
             address(modl),
             address(usdc),
             POOL_FEE
         );
-        require(poolAddress != address(0), "VE:poolAddress");
 
         pool = IUniswapV3Pool(poolAddress);
-        address token0 = pool.token0();
-        address token1 = pool.token1();
 
-        if (token0 == address(modl)) {
-            tickLower = tickInit + 100;
-        } else {
-            tickInit = -tickInit;
-            tickUpper = tickInit - 100;
-        }
-
+        require(poolAddress != address(0), "VE:poolAddress");
         pool.initialize(TickMath.getSqrtRatioAtTick(tickInit));
+    }
+
+    function start() external override nonReentrant manager {
+        require(started == 0, "S");
+        uint256 currentBlockTimestamp = Time.current();
+
+        uint256 modlBalance = modl.balanceOf(address(this));
+        require(modlBalance > 0, "ZB");
 
         IERC20(modl).safeApprove(address(NFPM), modlBalance);
 
@@ -90,7 +88,8 @@ contract LiquidityManager is
 
         liquidityTokenId = tokenId;
         currentLiquidity = liquidity;
-        emit Start(poolAddress);
+        started = currentBlockTimestamp;
+        emit Start(address(pool));
     }
 
     function clean(uint160 sqrtPriceLimitX96_)
