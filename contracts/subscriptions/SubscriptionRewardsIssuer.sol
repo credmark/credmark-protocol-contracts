@@ -8,23 +8,17 @@ import "./accumulators/ShareAccumulator.sol";
 import "../configuration/CSubscriptionRewardsIssuer.sol";
 import "../interfaces/IModl.sol";
 import "../interfaces/ISubscriptionRewardsIssuer.sol";
-import "../libraries/Time.sol";
 
 contract SubscriptionRewardsIssuer is
     ShareAccumulator,
     CSubscriptionRewardsIssuer,
     ISubscriptionRewardsIssuer
 {
-    using SafeERC20 for IERC20;
-    uint256 private constant PER_ANNUM = 86400 * 365;
-
-    uint256 lastIssued;
+    using SafeERC20 for IModl;
 
     constructor(ConstructorParams memory params)
         CSubscriptionRewardsIssuer(params)
-    {
-        lastIssued = Time.current();
-    }
+    {}
 
     function issue()
         external
@@ -32,10 +26,13 @@ contract SubscriptionRewardsIssuer is
         trustedContract
         returns (uint256 rewardsIssued)
     {
-        _accumulate(_mintableAmount());
-        lastIssued = Time.current();
+        uint256 mintable = modl.mintable(address(this));
+
+        _accumulate(mintable);
         rewardsIssued = _removeAccumulation(msg.sender);
-        modl.mint(msg.sender, rewardsIssued);
+
+        modl.mint(address(this), mintable);
+        modl.safeTransfer(msg.sender, rewardsIssued);
 
         emit Issue(msg.sender, rewardsIssued);
     }
@@ -60,14 +57,7 @@ contract SubscriptionRewardsIssuer is
         override
         returns (uint256 unissuedRewards)
     {
-        return accumulation(subscription, _mintableAmount());
-    }
-
-    function _mintableAmount() internal view returns (uint256) {
-        if (lastIssued > end) {
-            return 0;
-        }
-        return (config.amountPerAnnum * Time.since(lastIssued)) / PER_ANNUM;
+        return accumulation(subscription, modl.mintable(address(this)));
     }
 
     function token() external view override returns (address) {

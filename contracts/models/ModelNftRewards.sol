@@ -64,21 +64,7 @@ contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
                 : modelNft.ownerOf(claims[nextI].tokenId);
 
             if (nextI == claimCount || nextTokenOwner != tokenOwner) {
-                uint256 balance = modl.balanceOf(address(this));
-                if (balance < batchedAmount) {
-                    uint256 claimedAllowance = modlAllowance.claim(
-                        address(this)
-                    );
-
-                    require(
-                        claimedAllowance >= batchedAmount - balance,
-                        "ModelNftRewards:LOW_FUNDS"
-                    );
-                }
-
-                bool success = modl.transfer(tokenOwner, batchedAmount);
-                require(success, "ModelNftRewards:TRANSFER_FAILED");
-
+                modl.mint(tokenOwner, batchedAmount);
                 batchedAmount = 0;
             }
         }
@@ -87,13 +73,7 @@ contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
     function claim(Claim memory _claim) external override {
         address tokenOwner = modelNft.ownerOf(_claim.tokenId);
         _verifyAndMarkClaimed(tokenOwner, _claim);
-
-        if (modl.balanceOf(address(this)) < _claim.amount) {
-            modlAllowance.claim(address(this));
-        }
-
-        bool success = modl.transfer(tokenOwner, _claim.amount);
-        require(success, "ModelNftRewards:TRANSFER_FAILED");
+        modl.mint(tokenOwner, _claim.amount);
     }
 
     function isClaimed(uint256 index, uint256 tokenId)

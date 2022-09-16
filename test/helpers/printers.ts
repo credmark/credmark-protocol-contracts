@@ -3,7 +3,6 @@ import {
   liquidityManager,
   modelNft,
   modl,
-  modlAllowance,
   rewards,
   rewardsCmk,
   rewardsNft,
@@ -19,8 +18,6 @@ async function printContractAddresses() {
   console.log(cmk.address, 'cmk (Mock)');
 
   console.log(modl.address, 'modl');
-
-  console.log(modlAllowance.address, 'Modl Allowance');
   console.log(rewards.address, 'Rewards Issuer');
   console.log(rewardsCmk.address, 'cmk Rewards Issuer');
   console.log(liquidityManager.address, 'liquidity Manager');

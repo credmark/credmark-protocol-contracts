@@ -3,7 +3,6 @@ import { expect } from 'chai';
 import {
   setupProtocol,
   modl,
-  modlAllowance,
   deployContracts,
   grantPermissions,
 } from './helpers/contracts';
@@ -19,10 +18,6 @@ describe('Protocol Setup - Deployment', () => {
   it('Modl is Deployed', async () => {
     expect(modl.address).to.not.be.false;
   });
-
-  it('Modl Allowance is Deployed', async () => {
-    expect(modlAllowance.address).to.not.be.false;
-  });
 });
 
 describe('Protocol Setup - Pre Initialization', () => {
@@ -30,10 +25,6 @@ describe('Protocol Setup - Pre Initialization', () => {
     await setupUsers();
     await deployContracts();
     await grantPermissions();
-  });
-
-  it('Modl Allowance is not a minter of Modl', async () => {
-    expect(await modl.hasRole(MINTER_ROLE, modlAllowance.address)).to.be.false;
   });
 });
 
@@ -44,9 +35,5 @@ describe('Protocol Setup - Post Setup', () => {
   it('Deployer is default admin of modl', async () => {
     expect(await modl.hasRole(DEFAULT_ADMIN_ROLE, CREDMARK_DEPLOYER.address)).to
       .be.true;
-  });
-
-  it('Modl Allowance is a minter of Modl', async () => {
-    expect(await modl.hasRole(MINTER_ROLE, modlAllowance.address)).to.be.true;
   });
 });

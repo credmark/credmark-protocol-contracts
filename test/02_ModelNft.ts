@@ -103,8 +103,8 @@ describe('Model Nft', () => {
     });
     describe('#mint', () => {
       const TEST_SLUG = 'test';
-      before(async () => {
-        setupProtocol();
+      beforeEach(async () => {
+        await setupProtocol();
       });
 
       it('should be done by MINTER_ROLE', async () => {

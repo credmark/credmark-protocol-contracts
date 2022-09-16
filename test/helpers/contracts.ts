@@ -2,7 +2,6 @@ import { ethers } from 'hardhat';
 import './bigNumber';
 import {
   Modl,
-  ModlAllowance,
   MockCmk,
   MockUsdc,
   LiquidityManager,
@@ -41,9 +40,9 @@ import { VariableTokenSubscription } from '../../typechain/VariableTokenSubscrip
 import { BigNumber, BytesLike } from 'ethers';
 import { Contract } from 'hardhat/internal/hardhat-network/stack-traces/model';
 import { univ3Addresses } from './constants';
+import { aYearFromNow } from './time';
 
 let modl: Modl;
-let modlAllowance: ModlAllowance;
 let cmk: MockCmk;
 let usdc: MockCmk;
 let liquidityManager: LiquidityManager;
@@ -71,7 +70,6 @@ function configurableContracts() {
   return [
     modl,
     modelNft,
-    modlAllowance,
     revenueTreasury,
     rewards,
     rewardsCmk,
@@ -91,7 +89,6 @@ function contracts() {
   return [
     modl,
     modelNft,
-    modlAllowance,
     revenueTreasury,
     liquidityManager,
     rewards,
@@ -149,34 +146,26 @@ async function deployLibraries() {
 async function deployContractsDependency0() {
   const FModl = await ethers.getContractFactory('Modl');
   const FNft = await ethers.getContractFactory('ModelNft');
-  modl = (await FModl.deploy()) as Modl;
+  modl = (await FModl.deploy(
+    BigNumber.from(10_000_000).toWei(),
+    BigNumber.from(1_000_000).toWei()
+  )) as Modl;
   modelNft = (await FNft.deploy()) as ModelNft;
 }
 
 async function deployContractsDependency1() {
-  const FMA = await ethers.getContractFactory('ModlAllowance', {
-    libraries: { Time: timeLibrary.address },
-  });
-  const FRI = await ethers.getContractFactory('SubscriptionRewardsIssuer', {
-    libraries: { Time: timeLibrary.address },
-  });
+  const FRI = await ethers.getContractFactory('SubscriptionRewardsIssuer', {});
   const FLM = await ethers.getContractFactory('LiquidityManager', {
     libraries: { Time: timeLibrary.address },
   });
   const FRT = await ethers.getContractFactory('RevenueTreasury');
 
-  modlAllowance = (await FMA.deploy({
-    modlAddress: modl.address,
-  })) as ModlAllowance;
-
   rewards = (await FRI.deploy({
     modlAddress: modl.address,
-    end: 2209010400,
   })) as SubscriptionRewardsIssuer;
 
   rewardsCmk = (await FRI.deploy({
     modlAddress: modl.address,
-    end: 1798783200,
   })) as SubscriptionRewardsIssuer;
 
   revenueTreasury = (await FRT.deploy({
@@ -198,7 +187,6 @@ async function deployContractsDependency2() {
 
   rewardsNft = await FNftRew.deploy({
     modlAddress: modl.address,
-    modlAllowanceAddress: modlAllowance.address,
     modelNftAddress: modelNft.address,
   });
 
@@ -272,37 +260,32 @@ async function grantTrustedContract() {
 }
 
 async function grantMinter() {
-  await modl.grantRole(MINTER_ROLE, rewards.address);
-  await modl.grantRole(MINTER_ROLE, rewardsCmk.address);
-  await modl.grantRole(MINTER_ROLE, modlAllowance.address);
-  await modl.grantRole(MINTER_ROLE, TEST_GODMODE.address);
+  await modelNft.grantRole(MINTER_ROLE, CREDMARK_MANAGER.address);
 }
 
 async function configure() {
-  await modlAllowance.connect(CREDMARK_CONFIGURER).configure({
-    ceiling: BigNumber.from(500_000).toWei(),
-  });
-
-  await modlAllowance
+  await modl
     .connect(CREDMARK_CONFIGURER)
-    .update(
+    .grantAllowance(
       CREDMARK_TREASURY_MULTISIG.address,
       BigNumber.from(250_000).toWei()
     );
-  await modlAllowance
+  await modl
     .connect(CREDMARK_CONFIGURER)
-    .update(rewardsNft.address, BigNumber.from(250_000).toWei());
-
+    .grantAllowance(rewardsNft.address, BigNumber.from(250_000).toWei());
+  await modl
+    .connect(CREDMARK_CONFIGURER)
+    .grantAllowance(rewards.address, BigNumber.from(250_000).toWei());
+  await modl
+    .connect(CREDMARK_CONFIGURER)
+    .grantVestingAllowance(
+      rewardsCmk.address,
+      BigNumber.from(250_000).toWei(),
+      await aYearFromNow()
+    );
   await revenueTreasury.connect(CREDMARK_CONFIGURER).configure({
     daoAddress: CREDMARK_TREASURY_MULTISIG.address,
     modlPercentToDao: '0',
-  });
-
-  await rewards.connect(CREDMARK_CONFIGURER).configure({
-    amountPerAnnum: BigNumber.from(250_000).toWei(),
-  });
-  await rewardsCmk.connect(CREDMARK_CONFIGURER).configure({
-    amountPerAnnum: BigNumber.from(250_000).toWei(),
   });
 
   await subBasic.connect(CREDMARK_CONFIGURER).configure({
@@ -387,7 +370,6 @@ export {
   modl,
   cmk,
   usdc,
-  modlAllowance,
   liquidityManager,
   swapRouter,
   nonFungiblePositionManager,

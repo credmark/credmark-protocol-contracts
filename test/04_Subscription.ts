@@ -17,7 +17,6 @@ import {
   CREDMARK_CONFIGURER,
   CREDMARK_MANAGER,
   HACKER_ZACH,
-  TEST_GODMODE,
   setupUsers,
   USER_ALICE,
   USER_BRENT,
@@ -129,18 +128,10 @@ describe('Subscription.sol', () => {
   beforeEach(async () => {
     await setupProtocol();
     await setupUsers();
-    await modl
-      .connect(TEST_GODMODE)
-      .mint(USER_ALICE.address, (10_000).toBN18());
-    await modl
-      .connect(TEST_GODMODE)
-      .mint(USER_BRENT.address, (10_000).toBN18());
-    await modl
-      .connect(TEST_GODMODE)
-      .mint(USER_CAMMY.address, (10_000).toBN18());
-    await modl
-      .connect(TEST_GODMODE)
-      .mint(USER_DAVID.address, (10_000).toBN18());
+    await modl.mint(USER_ALICE.address, (10_000).toBN18());
+    await modl.mint(USER_BRENT.address, (10_000).toBN18());
+    await modl.mint(USER_CAMMY.address, (10_000).toBN18());
+    await modl.mint(USER_DAVID.address, (10_000).toBN18());
 
     await modl.connect(USER_ALICE).approve(subBasic.address, (10_000).toBN18());
     await modl.connect(USER_ALICE).approve(subPro.address, (10_000).toBN18());

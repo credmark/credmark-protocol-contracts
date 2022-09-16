@@ -61,9 +61,7 @@ describe('Credmark Model NFT Rewards', () => {
 
   beforeEach(async () => {
     await setupProtocol();
-    await modl
-      .connect(TEST_GODMODE)
-      .mint(rewardsNft.address, (100_000_000).toBN18());
+    await modl.mint(rewardsNft.address, (10_000_000).toBN18());
 
     merkleTree = new MerkleTree(
       leaves.map((leaf) => encodeLeaf(leaf)),

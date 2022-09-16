@@ -15,25 +15,11 @@ abstract contract CSubscriptionRewardsIssuer is Configurable {
 
     struct ConstructorParams {
         address modlAddress;
-        uint256 end;
-    }
-
-    struct Configuration {
-        uint256 amountPerAnnum;
     }
 
     constructor(ConstructorParams memory params) {
         modl = IModl(params.modlAddress);
-        end = params.end;
     }
-
-    function configure(Configuration memory newConfig) external {
-        config = newConfig;
-        _postConfiguration();
-    }
-
-    Configuration config;
 
     IModl public immutable modl;
-    uint256 public immutable end;
 }

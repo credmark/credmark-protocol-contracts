@@ -16,7 +16,12 @@ import {
   swapRouter,
   usdc,
 } from './helpers/contracts';
-import { advanceAMonth, advanceAnHour, advanceAYear } from './helpers/time';
+import {
+  advance1000Seconds,
+  advanceAMonth,
+  advanceAnHour,
+  advanceAYear,
+} from './helpers/time';
 import {
   CREDMARK_CONFIGURER,
   CREDMARK_MANAGER,
@@ -52,6 +57,7 @@ describe('LiquidityManager.sol', () => {
 
   describe('Liquidity Manager : Starting', () => {
     before(async () => {
+      await advance1000Seconds();
       await setupProtocol();
     });
 
@@ -68,9 +74,10 @@ describe('LiquidityManager.sol', () => {
     });
 
     it('Cannot be started except by manager', async () => {
-      await modl
-        .connect(TEST_GODMODE)
-        .mint(liquidityManager.address, BigNumber.from(7_500_000).toWei());
+      await modl.mint(
+        liquidityManager.address,
+        BigNumber.from(7_500_000).toWei()
+      );
       await expect(liquidityManager.connect(HACKER_ZACH).start()).reverted;
     });
 
@@ -130,9 +137,10 @@ describe('LiquidityManager.sol', () => {
       while (modl.address < usdc.address) {
         await setupProtocol();
       }
-      await modl
-        .connect(TEST_GODMODE)
-        .mint(liquidityManager.address, BigNumber.from(7_500_000).toWei());
+      await modl.mint(
+        liquidityManager.address,
+        BigNumber.from(7_500_000).toWei()
+      );
       await liquidityManager.connect(CREDMARK_MANAGER).start();
       expect(await (await liquidityManager.started()).toNumber()).gt(
         1650000000
@@ -148,9 +156,10 @@ describe('LiquidityManager.sol', () => {
         await setupProtocol();
       }
 
-      await modl
-        .connect(TEST_GODMODE)
-        .mint(liquidityManager.address, BigNumber.from(7_500_000).toWei());
+      await modl.mint(
+        liquidityManager.address,
+        BigNumber.from(7_500_000).toWei()
+      );
       await liquidityManager.connect(CREDMARK_MANAGER).start();
       expect(await (await liquidityManager.started()).toNumber()).gt(
         1650000000
@@ -181,9 +190,10 @@ describe('LiquidityManager.sol operations', () => {
     await usdc
       .connect(TEST_GODMODE)
       .mint(USER_DAVID.address, BigNumber.from(1_000_000).toWei(6));
-    await modl
-      .connect(TEST_GODMODE)
-      .mint(liquidityManager.address, BigNumber.from(5_000_000).toWei());
+    await modl.mint(
+      liquidityManager.address,
+      BigNumber.from(5_000_000).toWei()
+    );
     await liquidityManager.connect(CREDMARK_MANAGER).start();
 
     uniswapV3Pool = (await ethers.getContractAt(

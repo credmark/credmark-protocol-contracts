@@ -14,7 +14,11 @@ async function advanceX(seconds: number) {
   await ethers.provider.send('evm_mine', []);
   prevTs = prevTs + seconds;
 }
-
+async function aYearFromNow() {
+  const currentBlockTimestamp = (await ethers.provider.getBlock('latest'))
+    .timestamp;
+  return currentBlockTimestamp + 86400 * 365;
+}
 async function advanceAnHour() {
   return await advanceX(3600);
 }
@@ -41,4 +45,5 @@ export {
   advanceAMonth,
   advanceAYear,
   advance1000Seconds,
+  aYearFromNow,
 };

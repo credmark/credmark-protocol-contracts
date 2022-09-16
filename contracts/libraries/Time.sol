@@ -11,7 +11,7 @@ library Time {
     }
 
     function since(uint256 sinceTime)
-        external
+        public
         view
         returns (uint256 timeSinceSec)
     {
