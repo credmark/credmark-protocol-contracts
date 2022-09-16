@@ -7,7 +7,7 @@ import {
   grantPermissions,
 } from './helpers/contracts';
 import { CREDMARK_DEPLOYER, setupUsers } from './helpers/users';
-import { DEFAULT_ADMIN_ROLE, MINTER_ROLE } from './helpers/roles';
+import { DEFAULT_ADMIN_ROLE } from './helpers/roles';
 
 describe('Protocol Setup - Deployment', () => {
   before(async () => {
