@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../interfaces/IERC20Allowance.sol";
 
-abstract contract ERC20Allowance is ERC20, IERC20Allowance {
+abstract contract ERC20Allowance is IERC20Allowance {
     uint256 private constant PER_ANNUM = 86400 * 365;
 
     struct Allowance {
@@ -91,16 +90,11 @@ abstract contract ERC20Allowance is ERC20, IERC20Allowance {
 
     function _beforeTokenTransfer(
         address from,
-        address to,
+        address,
         uint256 amount
-    ) internal virtual override {
-        super._beforeTokenTransfer(from, to, amount);
-
+    ) internal virtual {
         if (from == address(0)) {
-            require(
-                amount <= mintable(msg.sender),
-                "ERC20Allowance: Mint amount exceeds mintable amount."
-            );
+            require(amount <= mintable(msg.sender), "MintAmountExceeded");
             minted[msg.sender] += amount;
         }
     }

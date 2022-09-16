@@ -25,8 +25,11 @@ contract RevenueTreasury is
             modl.burn((modl.balanceOf(address(this)) * modlPctToBurn) / 100);
         }
         uint256 amount = IERC20(tokenAddress).balanceOf(address(this));
-        IERC20(tokenAddress).safeTransfer(config.daoAddress, amount);
-        require(amount > 0, "RevenueTreasury:ZERO_BALANCE");
+        if (amount > 0) {
+            IERC20(tokenAddress).safeTransfer(config.daoAddress, amount);
+        }
+
+        emit Settle(tokenAddress, config.daoAddress, amount);
     }
 
     function settle(address tokenAddress, uint256 tokenId)
@@ -40,6 +43,8 @@ contract RevenueTreasury is
             config.daoAddress,
             tokenId
         );
+
+        emit Settle721(tokenAddress, config.daoAddress, tokenId);
     }
 
     function onERC721Received(

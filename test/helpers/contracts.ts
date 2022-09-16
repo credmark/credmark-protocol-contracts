@@ -1,44 +1,40 @@
 import { ethers } from 'hardhat';
-import './bigNumber';
 import {
-  Modl,
+  CmkSubscription,
+  INonfungiblePositionManager,
+  ISwapRouter,
+  LiquidityManager,
+  ManagedPriceOracle,
   MockCmk,
   MockUsdc,
-  LiquidityManager,
-  ISwapRouter,
-  INonfungiblePositionManager,
-  SubscriptionRewardsIssuer,
-  Time,
-  ModlSubscription,
-  ModelNftRewards,
   ModelNft,
-  ManagedPriceOracle,
+  ModelNftRewards,
+  Modl,
+  ModlSubscription,
   RevenueTreasury,
-  CmkSubscription,
+  StableTokenSubscription,
+  SubscriptionRewardsIssuer,
 } from '../../typechain';
+import './bigNumber';
 
 import {
-  setupUsers,
-  CREDMARK_DEPLOYER,
-  CREDMARK_MANAGER,
-  CREDMARK_TREASURY_MULTISIG,
   CREDMARK_CONFIGURER,
-  TEST_GODMODE,
+  CREDMARK_MANAGER,
   CREDMARK_ROLE_ASSIGNER,
+  CREDMARK_TREASURY_MULTISIG,
+  setupUsers,
+  TEST_GODMODE,
 } from './users';
 
 import {
   CONFIGURER_ROLE,
-  MANAGER_ROLE,
-  TRUSTED_CONTRACT_ROLE,
-  MINTER_ROLE,
   DEFAULT_ADMIN_ROLE,
+  MANAGER_ROLE,
+  MINTER_ROLE,
+  TRUSTED_CONTRACT_ROLE,
 } from './roles';
 
-import { StableTokenSubscription } from '../../typechain/StableTokenSubscription';
-import { VariableTokenSubscription } from '../../typechain/VariableTokenSubscription';
-import { BigNumber, BytesLike } from 'ethers';
-import { Contract } from 'hardhat/internal/hardhat-network/stack-traces/model';
+import { BigNumber } from 'ethers';
 import { univ3Addresses } from './constants';
 import { aYearFromNow } from './time';
 
@@ -82,7 +78,14 @@ function configurableContracts() {
 }
 
 function managedContracts() {
-  return [modlOracle, modelNft, modl, rewardsNft, liquidityManager];
+  return [
+    modlOracle,
+    modelNft,
+    modl,
+    rewardsNft,
+    liquidityManager,
+    revenueTreasury,
+  ];
 }
 
 function contracts() {
@@ -131,7 +134,7 @@ async function mockTokens() {
   await cmk
     .connect(TEST_GODMODE)
     .mint(TEST_GODMODE.address, BigNumber.from(10_000_000).toWei());
-  await cmk
+  await usdc
     .connect(TEST_GODMODE)
     .mint(TEST_GODMODE.address, BigNumber.from(10_000_000).toWei(6));
 }

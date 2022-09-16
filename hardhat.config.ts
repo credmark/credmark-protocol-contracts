@@ -7,6 +7,7 @@ import 'hardhat-gas-reporter';
 import { HardhatUserConfig } from 'hardhat/types';
 import 'solidity-coverage';
 import 'hardhat-contract-sizer';
+
 let accounts;
 if (process.env.ACCOUNT_MNEMONIC) {
   accounts = {
@@ -81,7 +82,7 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: false,
     strict: true,
-  }
+  },
 };
 
 export default config;
