@@ -22,10 +22,7 @@ abstract contract ERC20Allowance is IERC20Allowance {
     function mintable(address account) public view returns (uint256) {
         Allowance memory allowance = allowances[account];
 
-        require(
-            block.timestamp >= allowance.start,
-            "ERC20Allowance: Invalid allowance start time."
-        );
+        require(block.timestamp >= allowance.start, "VE:start");
         uint256 elapsed = block.timestamp - allowance.start;
 
         if (block.timestamp > allowance.end) {
@@ -55,7 +52,7 @@ abstract contract ERC20Allowance is IERC20Allowance {
         uint256 end
     ) internal {
         require(account != address(0), "NA");
-        require(block.timestamp <= end, "T");
+        require(block.timestamp <= end, "VE:end");
 
         uint256 accumulated = mintable(account);
         Allowance memory allowance = allowances[account];
@@ -72,7 +69,10 @@ abstract contract ERC20Allowance is IERC20Allowance {
 
         allowances[account] = allowance;
 
-        require(totalAnnualAllowance <= inflationCeiling, "VE");
+        require(
+            totalAnnualAllowance <= inflationCeiling,
+            "VE:totalAnnualAllowance"
+        );
     }
 
     function _stopAllowance(address account) internal {

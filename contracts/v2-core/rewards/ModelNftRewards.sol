@@ -2,12 +2,12 @@
 pragma solidity ^0.8.17;
 
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "../interfaces/IModlAllowance.sol";
 import "../interfaces/IModl.sol";
 import "../configuration/CModelNftRewards.sol";
 import "../interfaces/IModelNftRewards.sol";
+import "../util/permissions/Manager.sol";
 
-contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
+contract ModelNftRewards is CModelNftRewards, IModelNftRewards, Manager {
     constructor(ConstructorParams memory params) CModelNftRewards(params) {}
 
     struct Merkle {
@@ -116,11 +116,8 @@ contract ModelNftRewards is CModelNftRewards, IModelNftRewards {
     function _verifyAndMarkClaimed(address tokenOwner, Claim memory _claim)
         private
     {
-        require(_verifyClaim(_claim), "ModelNftRewards:INVALID_PROOF");
-        require(
-            !isClaimed(_claim.index, _claim.tokenId),
-            "ModelNftRewards:IS_CLAIMED"
-        );
+        require(_verifyClaim(_claim), "IP");
+        require(!isClaimed(_claim.index, _claim.tokenId), "IC");
 
         _setClaimed(_claim.index, _claim.tokenId);
         emit RewardsClaimed(

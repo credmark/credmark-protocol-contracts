@@ -3,13 +3,14 @@ pragma solidity ^0.8.17;
 
 import "../interfaces/IPriceOracle.sol";
 import "../configuration/CManagedPriceOracle.sol";
+import "../util/permissions/Manager.sol";
 
 /// @title ManagedPriceOracle
 /// @author Credmark
 /// @notice Allows a Manager to set the oracle price to be consumed by other contracts
 /// @dev Since subscriptions must have oracles with a decimals() of 8, we only allow for setting of price, not
 /// decimals
-contract ManagedPriceOracle is IPriceOracle, CManagedPriceOracle {
+contract ManagedPriceOracle is IPriceOracle, CManagedPriceOracle, Manager {
     constructor(ConstructorParams memory params) CManagedPriceOracle(params) {}
 
     function setPrice(uint256 newPrice) external manager {

@@ -203,7 +203,7 @@ describe('Credmark Model NFT Rewards', () => {
           amount: leaf.amount.add(1),
           merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
         })
-      ).to.be.revertedWith('ModelNftRewards:INVALID_PROOF');
+      ).to.be.revertedWith('IP');
 
       await expect(
         rewardsNft.claim({
@@ -214,7 +214,7 @@ describe('Credmark Model NFT Rewards', () => {
             encodeLeaf({ tokenId: leaf.tokenId, amount: leaf.amount.add(1) })
           ),
         })
-      ).to.be.revertedWith('ModelNftRewards:INVALID_PROOF');
+      ).to.be.revertedWith('IP');
     });
 
     it('should reward to owner of nft only', async () => {
@@ -398,7 +398,7 @@ describe('Credmark Model NFT Rewards', () => {
             merkleProof: merkleTree.getHexProof(encodeLeaf(leaves[1])),
           },
         ])
-      ).to.be.revertedWith('ModelNftRewards:INVALID_PROOF');
+      ).to.be.revertedWith('IP');
 
       await expect(
         rewardsNft.claimMulti([
@@ -420,7 +420,7 @@ describe('Credmark Model NFT Rewards', () => {
             merkleProof: merkleTree.getHexProof(encodeLeaf(leaves[1])),
           },
         ])
-      ).to.be.revertedWith('ModelNftRewards:INVALID_PROOF');
+      ).to.be.revertedWith('IP');
     });
 
     it('should reward to owner of nft only', async () => {
@@ -477,7 +477,7 @@ describe('Credmark Model NFT Rewards', () => {
             merkleProof: merkleTree.getHexProof(encodeLeaf(leaf)),
           },
         ])
-      ).to.be.revertedWith('ModelNftRewards:IS_CLAIMED');
+      ).to.be.revertedWith('IC');
     });
   });
 

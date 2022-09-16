@@ -3,9 +3,10 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./Configurable.sol";
+import "../util/Configurable.sol";
 
 import "../interfaces/ISubscriptionRewardsIssuer.sol";
+import "../interfaces/ISubscription.sol";
 
 abstract contract CSubscription is Configurable {
     struct ConstructorParams {
@@ -21,18 +22,13 @@ abstract contract CSubscription is Configurable {
         address treasury;
     }
 
+    IERC20 public immutable token;
+    ISubscriptionRewardsIssuer internal immutable rewardsIssuer;
+
+    Configuration public config;
+
     constructor(ConstructorParams memory params) {
         token = IERC20(params.tokenAddress);
         rewardsIssuer = ISubscriptionRewardsIssuer(params.rewardsIssuerAddress);
     }
-
-    function configure(Configuration memory newConfig) external {
-        config = newConfig;
-        _postConfiguration();
-    }
-
-    Configuration public config;
-
-    IERC20 public immutable token;
-    ISubscriptionRewardsIssuer internal immutable rewardsIssuer;
 }

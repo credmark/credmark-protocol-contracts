@@ -7,14 +7,16 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
 import "../interfaces/IModl.sol";
-import "../configuration/Permissioned.sol";
+import "../util/permissions/Manager.sol";
+import "../util/permissions/Configurer.sol";
 import "./ERC20Allowance.sol";
 
 contract Modl is
     ERC20,
     ERC20Snapshot,
     ERC20Allowance,
-    Permissioned,
+    Configurer,
+    Manager,
     Pausable,
     ERC20Permit,
     IModl

@@ -4,15 +4,17 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./accumulators/ShareAccumulator.sol";
+import "../util/accumulators/ShareAccumulator.sol";
 import "../configuration/CSubscriptionRewardsIssuer.sol";
 import "../interfaces/IModl.sol";
 import "../interfaces/ISubscriptionRewardsIssuer.sol";
+import "../util/permissions/TrustedContract.sol";
 
 contract SubscriptionRewardsIssuer is
     ShareAccumulator,
     CSubscriptionRewardsIssuer,
-    ISubscriptionRewardsIssuer
+    ISubscriptionRewardsIssuer,
+    TrustedContract
 {
     using SafeERC20 for IModl;
 

@@ -5,19 +5,23 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "../external/uniswap/v3-core/contracts/libraries/TickMath.sol";
-import "../external/uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "../../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "../../external/uniswap/v3-core/contracts/libraries/TickMath.sol";
+import "../../external/uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+import "../../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "../../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 import "../interfaces/ILiquidityManager.sol";
 import "../configuration/CLiquidityManager.sol";
+import "../util/permissions/Manager.sol";
+import "../util/permissions/Configurer.sol";
 
 contract LiquidityManager is
     ILiquidityManager,
     CLiquidityManager,
-    ReentrancyGuard
+    ReentrancyGuard,
+    Manager,
+    Configurer
 {
     using SafeERC20 for IERC20;
     IUniswapV3Factory private constant FACT =

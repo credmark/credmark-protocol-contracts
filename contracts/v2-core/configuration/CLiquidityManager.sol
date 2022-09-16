@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./Configurable.sol";
+import "../util/Configurable.sol";
 
 import "../interfaces/IModl.sol";
 
-abstract contract CLiquidityManager is Configurable {
+abstract contract CLiquidityManager {
     struct ConstructorParams {
         address modlAddress;
         address usdcAddress;
@@ -14,6 +14,12 @@ abstract contract CLiquidityManager is Configurable {
         uint256 lockup;
     }
 
+    IModl public immutable modl;
+    IERC20 public immutable usdc;
+    address public immutable revenueTreasury;
+    uint256 public immutable launchLiquidity;
+    uint256 public immutable lockup;
+
     constructor(ConstructorParams memory params) {
         usdc = IERC20(params.usdcAddress);
         modl = IModl(params.modlAddress);
@@ -21,10 +27,4 @@ abstract contract CLiquidityManager is Configurable {
         lockup = params.lockup;
         revenueTreasury = params.revenueTreasury;
     }
-
-    IModl public immutable modl;
-    IERC20 public immutable usdc;
-    address public immutable revenueTreasury;
-    uint256 public immutable launchLiquidity;
-    uint256 public immutable lockup;
 }

@@ -7,9 +7,10 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-import "../configuration/Permissioned.sol";
+import "../util/permissions/Manager.sol";
+import "../util/permissions/Configurer.sol";
 
-contract ModelNft is ERC721, Pausable, ERC721Enumerable, Permissioned {
+contract ModelNft is ERC721, Pausable, ERC721Enumerable, Manager, Configurer {
     constructor() ERC721("Credmark Model NFT", "cmModelNFT") {}
 
     function pause() external configurer {

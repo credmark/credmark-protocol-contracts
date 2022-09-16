@@ -7,13 +7,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import "../interfaces/IRevenueTreasury.sol";
-import "../configuration/Permissioned.sol";
 import "../configuration/CRevenueTreasury.sol";
+import "../util/permissions/Manager.sol";
 
 contract RevenueTreasury is
     IRevenueTreasury,
     CRevenueTreasury,
-    IERC721Receiver
+    IERC721Receiver,
+    Manager
 {
     using SafeERC20 for IERC20;
 
