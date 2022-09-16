@@ -24,13 +24,15 @@ abstract contract PriceAccumulator {
     uint256 internal fsnapt;
 
     /**
-        @dev Any account's feeOffset can be subtracted by the current offset and multiplied by fee/sec to determine the average price per second that account has experienced.
+        @dev Any account's feeOffset can be subtracted by the current offset and multiplied by 
+        fee/sec to determine the average price per second that account has experienced.
     **/
     mapping(address => uint256) internal feeOffset;
 
     /**
         @notice snapshots the previous accumulation and sets a new price
-        @dev by setting the price, you presume accumulation offset for the amount of time up to the newly set variable.
+        @dev by setting the price, you presume accumulation offset for the amount of time up 
+        to the newly set variable.
         @param newPrice The new price of the accumulating token
     **/
     function setPrice(uint256 newPrice) internal {
@@ -41,7 +43,10 @@ abstract contract PriceAccumulator {
 
     /** 
         @notice returns the offset for the block.timestamp
-        @dev calculates the current offset
+        @dev calculates the current offset. 
+        @notice this can underflow to 0 if the price is high
+        and is reset frequently. the 10**8 represents the 
+        price oracle's decimals.
     **/
     function currentFeeOffset() internal view returns (uint256) {
         return
