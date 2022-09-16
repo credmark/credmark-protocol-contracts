@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "../../libraries/Time.sol";
-
 /**
     @title PriceAccumulator
     @author Credmark
@@ -38,7 +36,7 @@ abstract contract PriceAccumulator {
     function setPrice(uint256 newPrice) internal {
         foffst = currentFeeOffset();
         fprice = newPrice;
-        fsnapt = Time.current();
+        fsnapt = block.timestamp;
     }
 
     /** 
@@ -49,6 +47,6 @@ abstract contract PriceAccumulator {
         return
             fprice == 0
                 ? foffst
-                : (Time.since(fsnapt) * (10**8)) / fprice + foffst;
+                : ((block.timestamp - fsnapt) * (10**8)) / fprice + foffst;
     }
 }

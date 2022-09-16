@@ -9,8 +9,6 @@ import "../configuration/CSubscription.sol";
 import "./accumulators/ShareAccumulator.sol";
 import "./accumulators/PriceAccumulator.sol";
 
-import "../libraries/Time.sol";
-
 import "../interfaces/ISubscription.sol";
 import "../interfaces/ISubscriptionRewardsIssuer.sol";
 
@@ -37,7 +35,7 @@ abstract contract Subscription is
     }
 
     function exit() external override {
-        require(Time.current() > lockupExpiration[msg.sender], "TL");
+        require(block.timestamp > lockupExpiration[msg.sender], "TL");
         (uint256 amount, uint256 fee) = _exit(msg.sender);
 
         if (amount > 0) {
@@ -108,7 +106,7 @@ abstract contract Subscription is
 
         if (feeOffset[account] == 0) {
             feeOffset[account] = currentFeeOffset();
-            lockupExpiration[account] = Time.current() + config.lockup;
+            lockupExpiration[account] = block.timestamp + config.lockup;
         }
 
         emit Deposit(account, amount);
@@ -119,8 +117,9 @@ abstract contract Subscription is
         internal
         returns (uint256 amount, uint256 fee)
     {
+        uint256 aggFees = fees(account);
         amount = deposits(account);
-        fee = Time.min(amount, fees(account));
+        fee = amount <= fees(account) ? amount : aggFees;
         amount -= fee;
 
         _accumulate(rewardsIssuer.issue());

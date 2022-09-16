@@ -10,7 +10,6 @@ import "../external/uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "../external/uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../external/uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import "../libraries/Time.sol";
 
 import "../interfaces/ILiquidityManager.sol";
 import "../configuration/CLiquidityManager.sol";
@@ -63,7 +62,7 @@ contract LiquidityManager is
 
     function start() external override nonReentrant manager {
         require(started == 0, "S");
-        uint256 currentBlockTimestamp = Time.current();
+        uint256 currentBlockTimestamp = block.timestamp;
 
         uint256 modlBalance = modl.balanceOf(address(this));
         require(modlBalance > 0, "ZB");
@@ -124,7 +123,7 @@ contract LiquidityManager is
                 tokenOut: address(modl),
                 fee: POOL_FEE,
                 recipient: address(this),
-                deadline: Time.current(),
+                deadline: block.timestamp,
                 amountIn: usdcBalance,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
@@ -139,7 +138,7 @@ contract LiquidityManager is
 
     function transferPosition() external configurer {
         require(started != 0, "NS");
-        require(Time.current() > started + lockup, "TL");
+        require(block.timestamp > started + lockup, "TL");
         NFPM.transferFrom(address(this), revenueTreasury, liquidityTokenId);
     }
 }

@@ -105,8 +105,6 @@ function subscriptions() {
   return [subBasic, subPro, subSuper];
 }
 
-let timeLibrary: Time;
-
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 async function connectExternals() {
@@ -138,11 +136,6 @@ async function mockTokens() {
     .mint(TEST_GODMODE.address, BigNumber.from(10_000_000).toWei(6));
 }
 
-async function deployLibraries() {
-  const FTime = await ethers.getContractFactory('Time');
-  timeLibrary = (await FTime.deploy()) as Time;
-}
-
 async function deployContractsDependency0() {
   const FModl = await ethers.getContractFactory('Modl');
   const FNft = await ethers.getContractFactory('ModelNft');
@@ -154,10 +147,8 @@ async function deployContractsDependency0() {
 }
 
 async function deployContractsDependency1() {
-  const FRI = await ethers.getContractFactory('SubscriptionRewardsIssuer', {});
-  const FLM = await ethers.getContractFactory('LiquidityManager', {
-    libraries: { Time: timeLibrary.address },
-  });
+  const FRI = await ethers.getContractFactory('SubscriptionRewardsIssuer');
+  const FLM = await ethers.getContractFactory('LiquidityManager');
   const FRT = await ethers.getContractFactory('RevenueTreasury');
 
   rewards = (await FRI.deploy({
@@ -197,12 +188,8 @@ async function deployContractsDependency2() {
 }
 
 async function deployContractsDependency3() {
-  const FSubModl = await ethers.getContractFactory('ModlSubscription', {
-    libraries: { Time: timeLibrary.address },
-  });
-  const FSubCmk = await ethers.getContractFactory('CmkSubscription', {
-    libraries: { Time: timeLibrary.address },
-  });
+  const FSubModl = await ethers.getContractFactory('ModlSubscription');
+  const FSubCmk = await ethers.getContractFactory('CmkSubscription');
 
   subBasic = (await FSubModl.deploy(
     {
@@ -336,8 +323,6 @@ async function setupProtocol() {
 async function deployContracts() {
   await mockTokens();
 
-  await deployLibraries();
-
   await deployContractsDependency0();
   await deployContractsDependency1();
   await deployContractsDependency2();
@@ -373,7 +358,6 @@ export {
   liquidityManager,
   swapRouter,
   nonFungiblePositionManager,
-  timeLibrary,
   subBasic,
   subPro,
   subscriptionStable,
