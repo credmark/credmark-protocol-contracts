@@ -20,6 +20,7 @@ import {
 } from './helpers/users';
 
 import './helpers/bigNumber';
+import { advanceAYear } from './helpers/time';
 
 describe('Credmark Model NFT Rewards', () => {
   let merkleTree: MerkleTree;
@@ -47,7 +48,7 @@ describe('Credmark Model NFT Rewards', () => {
     },
     {
       tokenId: ethers.utils.id('slug 6'),
-      amount: BigNumber.from(50).mul(1e6).mul(BigNumber.from(10).pow(18)),
+      amount: BigNumber.from(5).mul(1e5).mul(BigNumber.from(10).pow(18)),
     },
   ];
 
@@ -61,7 +62,11 @@ describe('Credmark Model NFT Rewards', () => {
 
   beforeEach(async () => {
     await setupProtocol();
-    await modl.mint(rewardsNft.address, (10_000_000).toBN18());
+    let i = 0;
+    while (i < 100) {
+      await advanceAYear();
+      i++;
+    }
 
     merkleTree = new MerkleTree(
       leaves.map((leaf) => encodeLeaf(leaf)),
@@ -324,13 +329,13 @@ describe('Credmark Model NFT Rewards', () => {
       )
         .to.emit(modl, 'Transfer')
         .withArgs(
-          rewardsNft.address,
+          NULL_ADDRESS,
           USER_ALICE.address,
           leaves[0].amount.add(leaves[1].amount).add(leaves[2].amount)
         )
         .and.to.emit(modl, 'Transfer')
         .withArgs(
-          rewardsNft.address,
+          NULL_ADDRESS,
           USER_BRENT.address,
           leaves[3].amount.add(leaves[4].amount).add(leaves[5].amount)
         );
