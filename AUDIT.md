@@ -111,3 +111,14 @@ contracts/v2-core/util/permissions/Manager.sol
 contracts/v2-core/util/permissions/Permissioned.sol
 contracts/v2-core/util/permissions/TrustedContract.sol
 ```
+
+# Files to Not Audit
+
+The protocol interacts and inherits from contracts and interfaces from openzeppelin, Uniswap v3, and Chainlink. These files are already audited.
+
+The protocol uses Mocks in Testing, to create Tokens that Mock USDC and CMK.
+
+```
+contracts/external/*
+contracts/mocks/*
+```
