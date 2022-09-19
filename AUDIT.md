@@ -1,5 +1,21 @@
 # Credmark Protocol Audits
 
+An english description of the protocol's operation is available here.
+https://docs.google.com/document/d/1Fhv6fyjoxCYrnN2H9PoNkmhT8ojtxJGFoOZ3pjsCuMI/edit?usp=sharing
+
+
+All contracts in:
+```
+/contracts/v2-core/*
+```
+Must to be audited.
+```
+contracts/external/*
+contracts/mocks/*
+@openzeppelin
+```
+Can be ignored, since they are from already audited sources or exist only for testing purposes.
+
 ## Files to Audit
 
 ### Configuration Files
