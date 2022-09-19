@@ -1,6 +1,6 @@
 # Credmark Protocol Contracts
 
-[Auditor Docs](AUDIT.md)
+[Auditor Docs](docs/AUDIT.md)
 
 [Protocol Description](https://docs.google.com/document/d/1Fhv6fyjoxCYrnN2H9PoNkmhT8ojtxJGFoOZ3pjsCuMI/edit?usp=sharing)
 # Quickstart
@@ -47,6 +47,10 @@ Reversions are used to:
 `IC` - Is Claimed - A merkle claim proof has already been claimed.
 
 `NA` - Null Address - Certain operations need to be performed on valid addresses. `address(0x0)` isn't one of those addresses in this case.
+
+## Deployment Order
+
+![Constructor Inheritance](docs/img/ConstructorInheritance.png)
 
 ## Permissions, Configurations, and Interfaces
 
