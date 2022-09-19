@@ -1,5 +1,8 @@
 # Credmark Protocol Contracts
 
+[Auditor Docs](AUDIT.md)
+
+[Protocol Description](https://docs.google.com/document/d/1Fhv6fyjoxCYrnN2H9PoNkmhT8ojtxJGFoOZ3pjsCuMI/edit?usp=sharing)
 # Quickstart
 
 `npm i`
