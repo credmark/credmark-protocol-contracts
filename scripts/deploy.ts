@@ -19,7 +19,7 @@ async function main() {
         ModelNft
       
       Deploy Contracts Dep 1
-        ModlAllowance
+        ModlMintAllowance
         RewardsIssuers
         RevenueTreasury
         LiquidityManager
@@ -42,7 +42,7 @@ async function main() {
 
       Grant Configurer Permissions 
         Modl
-        Modl Allowance
+        Modl MintAllowance
         Rewards Issuer
         Cmk Rewards Issuer
         Revenue Treasury
@@ -77,13 +77,13 @@ async function main() {
       Grant Minter Permissions:
         MODL 
           Rewards Issuer
-          Modl Allowance
+          Modl MintAllowance
           Cmk Rewards Issuer
           Deployer
 
     >>CONFIGURE<<
 
-      Modl Allowance
+      Modl MintAllowance
       Revenue Treasury
       Issuers
         Rewards Issuer
@@ -100,7 +100,7 @@ async function main() {
         Admin
           Modl
           ModelNft
-          ModlAllowance
+          ModlMintAllowance
           CMK Rewards Issuer
           Rewards Issuer
           Revenue Treasury
@@ -112,7 +112,7 @@ async function main() {
           Super Pro Subscription
           Cmk Subscription
         Configurer
-          Modl Allowance
+          Modl MintAllowance
           Rewards Issuer
           Cmk Rewards Issuer
           Revenue Treasury
@@ -129,7 +129,7 @@ async function main() {
     
     >>LAUNCH<<   
       Set Modl Oracle price   
-      Update Modl Allowance for Dao
+      Update Modl MintAllowance for Dao
       Mint Modl for Liquidity Manager
       Start Liquidity Manager
 

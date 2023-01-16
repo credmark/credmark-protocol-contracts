@@ -34,20 +34,20 @@ export interface RevenueTreasuryConfig {
   modlPercentToDao: BigNumberish;
 }
 
-export interface AllowanceConfig {
+export interface MintAllowanceConfig {
   account: string;
   amountPerAnnum: BigNumberish;
 }
 
-export interface ModlAllowanceConfig {
+export interface ModlMintAllowanceConfig {
   ceiling: BigNumberish;
-  allowances: Array<AllowanceConfig>;
+  mintAllowances: Array<MintAllowanceConfig>;
 }
 
 export interface ProtocolConfig {
   liquidityManagers: LiquidityManagerConfig;
   rewardsIssuerConfig: Array<RewardsIssuerConfig>;
-  modlAllowance: ModlAllowanceConfig;
+  modlMintAllowance: ModlMintAllowanceConfig;
 }
 
 export interface UniswapV3Config {

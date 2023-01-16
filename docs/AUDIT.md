@@ -42,7 +42,7 @@ contracts/v2-core/configuration/CSubscriptionRewardsIssuer.sol
 Interfaces are contract interfaces for external calls.
 
 ```
-contracts/v2-core/interfaces/IERC20Allowance.sol
+contracts/v2-core/interfaces/IERC20MintAllowance.sol
 contracts/v2-core/interfaces/ILiquidityManager.sol
 contracts/v2-core/interfaces/IModelNftRewards.sol
 contracts/v2-core/interfaces/IModl.sol
@@ -98,12 +98,12 @@ contracts/v2-core/subscriptions/VariableTokenSubscription.sol
 
 ### Token
 
-Modl inherits ERC20Allowance to set minting parameters and permissions to mint inflationary abounts.
+Modl inherits ERC20MintAllowance to set minting parameters and permissions to mint inflationary abounts.
 
 Model Nfts are owned by the contributor of a Model.
 
 ```
-contracts/v2-core/token/ERC20Allowance.sol
+contracts/v2-core/token/ERC20MintAllowance.sol
 contracts/v2-core/token/ModelNft.sol
 contracts/v2-core/token/Modl.sol
 ```

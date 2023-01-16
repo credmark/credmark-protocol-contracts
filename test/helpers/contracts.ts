@@ -256,19 +256,19 @@ async function grantMinter() {
 async function configure() {
   await modl
     .connect(CREDMARK_CONFIGURER)
-    .grantAllowance(
+    .grantMintAllowance(
       CREDMARK_TREASURY_MULTISIG.address,
       BigNumber.from(250_000).toWei()
     );
   await modl
     .connect(CREDMARK_CONFIGURER)
-    .grantAllowance(rewardsNft.address, BigNumber.from(250_000).toWei());
+    .grantMintAllowance(rewardsNft.address, BigNumber.from(250_000).toWei());
   await modl
     .connect(CREDMARK_CONFIGURER)
-    .grantAllowance(rewards.address, BigNumber.from(250_000).toWei());
+    .grantMintAllowance(rewards.address, BigNumber.from(250_000).toWei());
   await modl
     .connect(CREDMARK_CONFIGURER)
-    .grantVestingAllowance(
+    .grantVestingMintAllowance(
       rewardsCmk.address,
       BigNumber.from(250_000).toWei(),
       await aYearFromNow()

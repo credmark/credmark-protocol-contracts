@@ -9,12 +9,12 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "../interfaces/IModl.sol";
 import "../util/permissions/Manager.sol";
 import "../util/permissions/Configurer.sol";
-import "./ERC20Allowance.sol";
+import "./ERC20MintAllowance.sol";
 
 contract Modl is
     ERC20,
     ERC20Snapshot,
-    ERC20Allowance,
+    ERC20MintAllowance,
     Configurer,
     Manager,
     Pausable,
@@ -26,7 +26,7 @@ contract Modl is
         ERC20Permit("Modl")
     {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _addAllowance(msg.sender, launchLiquidity);
+        _addMintAllowance(msg.sender, launchLiquidity);
         inflationCeiling = ceiling;
     }
 
@@ -42,23 +42,23 @@ contract Modl is
         _unpause();
     }
 
-    function grantAllowance(address account, uint256 annualAllowance)
+    function grantMintAllowance(address account, uint256 annualMintAllowance)
         external
         configurer
     {
-        _setAllowance(account, annualAllowance);
+        _setMintAllowance(account, annualMintAllowance);
     }
 
-    function grantVestingAllowance(
+    function grantVestingMintAllowance(
         address account,
-        uint256 annualAllowance,
+        uint256 annualMintAllowance,
         uint256 end
     ) external configurer {
-        _setAllowance(account, annualAllowance, end);
+        _setMintAllowance(account, annualMintAllowance, end);
     }
 
-    function emergencyStopAllowance(address account) external configurer {
-        _stopAllowance(account);
+    function emergencyStopMintAllowance(address account) external configurer {
+        _stopMintAllowance(account);
     }
 
     function mint(address to, uint256 amount) external override {
@@ -66,7 +66,7 @@ contract Modl is
     }
 
     function totalInflation() external view returns (uint256) {
-        return totalAnnualAllowance;
+        return totalAnnualMintAllowance;
     }
 
     function burn(uint256 amount) external override {
@@ -84,7 +84,11 @@ contract Modl is
         address from,
         address to,
         uint256 amount
-    ) internal override(ERC20, ERC20Snapshot, ERC20Allowance) whenNotPaused {
+    )
+        internal
+        override(ERC20, ERC20Snapshot, ERC20MintAllowance)
+        whenNotPaused
+    {
         super._beforeTokenTransfer(from, to, amount);
     }
 }

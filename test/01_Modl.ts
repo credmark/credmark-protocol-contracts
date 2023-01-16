@@ -68,17 +68,17 @@ describe('Modl', () => {
       await expect(
         modl
           .connect(CREDMARK_MANAGER)
-          .grantAllowance(USER_ALICE.address, BigNumber.from(10000).toWei())
+          .grantMintAllowance(USER_ALICE.address, BigNumber.from(10000).toWei())
       ).reverted;
       await expect(
         modl
           .connect(CREDMARK_CONFIGURER)
-          .grantAllowance(USER_ALICE.address, BigNumber.from(10000).toWei())
+          .grantMintAllowance(USER_ALICE.address, BigNumber.from(10000).toWei())
       ).not.reverted;
       await expect(
         modl
           .connect(CREDMARK_MANAGER)
-          .grantVestingAllowance(
+          .grantVestingMintAllowance(
             USER_ALICE.address,
             BigNumber.from(10000).toWei(),
             1798783200
@@ -87,7 +87,7 @@ describe('Modl', () => {
       await expect(
         modl
           .connect(CREDMARK_CONFIGURER)
-          .grantVestingAllowance(
+          .grantVestingMintAllowance(
             USER_ALICE.address,
             BigNumber.from(10000).toWei(),
             1798783200
@@ -216,7 +216,7 @@ describe('Modl', () => {
       );
     });
   });
-  describe('allowances', async () => {
+  describe('mintAllowances', async () => {
     before(async () => {
       modl = await modlFactory.deploy(
         BigNumber.from(10_000_000).toWei(),
@@ -226,17 +226,17 @@ describe('Modl', () => {
       await modl.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
     });
 
-    it('#set up allowance', async () => {
+    it('#set up mintAllowance', async () => {
       await expect(
         modl
           .connect(CREDMARK_CONFIGURER)
-          .grantAllowance(USER_BRENT.address, BigNumber.from(1_000).toWei())
+          .grantMintAllowance(USER_BRENT.address, BigNumber.from(1_000).toWei())
       ).not.reverted;
       expect((await modl.totalInflation()).scaledInt(18)).to.eq(1_000);
       await expect(
         modl
           .connect(CREDMARK_CONFIGURER)
-          .grantVestingAllowance(
+          .grantVestingMintAllowance(
             USER_CAMMY.address,
             BigNumber.from(1_000).toWei(),
             await aYearFromNow()
@@ -246,7 +246,7 @@ describe('Modl', () => {
       expect((await modl.totalInflation()).scaledInt(18)).to.eq(2_000);
     });
 
-    it('#minting allowance liquidity', async () => {
+    it('#minting mintAllowance liquidity', async () => {
       await advanceAYear();
 
       expect((await modl.mintable(USER_BRENT.address)).scaledInt(18)).eq(1000);
@@ -293,7 +293,7 @@ describe('Modl', () => {
       expect(await modl.connect(USER_CAMMY).mintable(USER_CAMMY.address)).eq(0);
     });
 
-    it('#should not mint after stopping allowance', async () => {
+    it('#should not mint after stopping mintAllowance', async () => {
       await advanceAYear();
 
       expect((await modl.mintable(USER_BRENT.address)).scaledInt(18)).to.be.eq(
@@ -303,7 +303,7 @@ describe('Modl', () => {
       await expect(
         modl
           .connect(CREDMARK_CONFIGURER)
-          .emergencyStopAllowance(USER_BRENT.address)
+          .emergencyStopMintAllowance(USER_BRENT.address)
       ).to.not.be.reverted;
 
       expect(await modl.mintable(USER_BRENT.address)).eq(0);

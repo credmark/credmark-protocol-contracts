@@ -71,8 +71,8 @@
 //       ],
 //     },
 //   ],
-//   modlAllowance: {
-//     allowances: [
+//   modlMintAllowance: {
+//     mintAllowances: [
 //       {
 //         account: 'CREDMARK_MULTISIG_TREASURY',
 //         amountPerAnnum: BigNumber.from(250000).mul(BigNumber.from(10).pow(18)),
