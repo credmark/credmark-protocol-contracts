@@ -16,7 +16,7 @@ describe('Protocol Setup - Deployment', () => {
   });
 
   it('Modl is Deployed', async () => {
-    expect(modl.address).to.not.be.false;
+    expect(await modl.getAddress()).to.not.be.false;
   });
 });
 
@@ -33,7 +33,7 @@ describe('Protocol Setup - Post Setup', () => {
     await setupProtocol();
   });
   it('Deployer is default admin of modl', async () => {
-    expect(await modl.hasRole(DEFAULT_ADMIN_ROLE, CREDMARK_DEPLOYER.address)).to
+    expect(await modl.hasRole(DEFAULT_ADMIN_ROLE, await CREDMARK_DEPLOYER.getAddress())).to
       .be.true;
   });
 });

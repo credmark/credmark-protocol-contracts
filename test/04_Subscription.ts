@@ -51,41 +51,41 @@ describe('Subscription.sol', () => {
       return Math.round(Number(num) / 100) * 100;
     }
     abal = roundNearest100(
-      (await modl.balanceOf(USER_ALICE.address)).scaledInt(18)
+      (await modl.balanceOf(await USER_ALICE.getAddress())).scaledInt(18)
     );
     bbal = roundNearest100(
-      (await modl.balanceOf(USER_BRENT.address)).scaledInt(18)
+      (await modl.balanceOf(await USER_BRENT.getAddress())).scaledInt(18)
     );
     cbal = roundNearest100(
-      (await modl.balanceOf(USER_CAMMY.address)).scaledInt(18)
+      (await modl.balanceOf(await USER_CAMMY.getAddress())).scaledInt(18)
     );
 
     abRewards = roundNearest100(
-      (await subBasic.rewards(USER_ALICE.address)).scaledInt(18)
+      (await subBasic.rewards(await USER_ALICE.getAddress())).scaledInt(18)
     );
     bbRewards = roundNearest100(
-      (await subBasic.rewards(USER_BRENT.address)).scaledInt(18)
+      (await subBasic.rewards(await USER_BRENT.getAddress())).scaledInt(18)
     );
     cbRewards = roundNearest100(
-      (await subBasic.rewards(USER_CAMMY.address)).scaledInt(18)
+      (await subBasic.rewards(await USER_CAMMY.getAddress())).scaledInt(18)
     );
     apRewards = roundNearest100(
-      (await subPro.rewards(USER_ALICE.address)).scaledInt(18)
+      (await subPro.rewards(await USER_ALICE.getAddress())).scaledInt(18)
     );
     bpRewards = roundNearest100(
-      (await subPro.rewards(USER_BRENT.address)).scaledInt(18)
+      (await subPro.rewards(await USER_BRENT.getAddress())).scaledInt(18)
     );
     cpRewards = roundNearest100(
-      (await subPro.rewards(USER_CAMMY.address)).scaledInt(18)
+      (await subPro.rewards(await USER_CAMMY.getAddress())).scaledInt(18)
     );
     aspRewards = roundNearest100(
-      (await subSuper.rewards(USER_ALICE.address)).scaledInt(18)
+      (await subSuper.rewards(await USER_ALICE.getAddress())).scaledInt(18)
     );
     bspRewards = roundNearest100(
-      (await subSuper.rewards(USER_BRENT.address)).scaledInt(18)
+      (await subSuper.rewards(await USER_BRENT.getAddress())).scaledInt(18)
     );
     cspRewards = roundNearest100(
-      (await subSuper.rewards(USER_CAMMY.address)).scaledInt(18)
+      (await subSuper.rewards(await USER_CAMMY.getAddress())).scaledInt(18)
     );
     bTotalDep = roundNearest100((await subBasic.totalDeposits()).scaledInt(18));
     pTotalDep = roundNearest100((await subPro.totalDeposits()).scaledInt(18));
@@ -130,26 +130,26 @@ describe('Subscription.sol', () => {
   beforeEach(async () => {
     await setupProtocol();
 
-    await modl.mint(USER_ALICE.address, (10_000).toBN18());
-    await modl.mint(USER_BRENT.address, (10_000).toBN18());
-    await modl.mint(USER_CAMMY.address, (10_000).toBN18());
-    await modl.mint(USER_DAVID.address, (10_000).toBN18());
+    await modl.mint(await USER_ALICE.getAddress(), (10_000).toBN18());
+    await modl.mint(await USER_BRENT.getAddress(), (10_000).toBN18());
+    await modl.mint(await USER_CAMMY.getAddress(), (10_000).toBN18());
+    await modl.mint(await USER_DAVID.getAddress(), (10_000).toBN18());
 
-    await modl.connect(USER_ALICE).approve(subBasic.address, (10_000).toBN18());
-    await modl.connect(USER_ALICE).approve(subPro.address, (10_000).toBN18());
-    await modl.connect(USER_ALICE).approve(subSuper.address, (10_000).toBN18());
+    await modl.connect(USER_ALICE).approve(await subBasic.getAddress(), (10_000).toBN18());
+    await modl.connect(USER_ALICE).approve(await subPro.getAddress(), (10_000).toBN18());
+    await modl.connect(USER_ALICE).approve(await subSuper.getAddress(), (10_000).toBN18());
 
-    await modl.connect(USER_BRENT).approve(subBasic.address, (10_000).toBN18());
-    await modl.connect(USER_BRENT).approve(subPro.address, (10_000).toBN18());
-    await modl.connect(USER_BRENT).approve(subSuper.address, (10_000).toBN18());
+    await modl.connect(USER_BRENT).approve(await subBasic.getAddress(), (10_000).toBN18());
+    await modl.connect(USER_BRENT).approve(await subPro.getAddress(), (10_000).toBN18());
+    await modl.connect(USER_BRENT).approve(await subSuper.getAddress(), (10_000).toBN18());
 
-    await modl.connect(USER_CAMMY).approve(subBasic.address, (10_000).toBN18());
-    await modl.connect(USER_CAMMY).approve(subPro.address, (10_000).toBN18());
-    await modl.connect(USER_CAMMY).approve(subSuper.address, (10_000).toBN18());
+    await modl.connect(USER_CAMMY).approve(await subBasic.getAddress(), (10_000).toBN18());
+    await modl.connect(USER_CAMMY).approve(await subPro.getAddress(), (10_000).toBN18());
+    await modl.connect(USER_CAMMY).approve(await subSuper.getAddress(), (10_000).toBN18());
 
-    await modl.connect(USER_DAVID).approve(subBasic.address, (10_000).toBN18());
-    await modl.connect(USER_DAVID).approve(subPro.address, (10_000).toBN18());
-    await modl.connect(USER_DAVID).approve(subSuper.address, (10_000).toBN18());
+    await modl.connect(USER_DAVID).approve(await subBasic.getAddress(), (10_000).toBN18());
+    await modl.connect(USER_DAVID).approve(await subPro.getAddress(), (10_000).toBN18());
+    await modl.connect(USER_DAVID).approve(await subSuper.getAddress(), (10_000).toBN18());
   });
 
   it('Subscription: Can Deposit', async () => {
@@ -160,25 +160,25 @@ describe('Subscription.sol', () => {
   it('Subscription: Deposit Math Works', async () => {
     await subBasic.connect(USER_ALICE).deposit((100).toBN18());
 
-    expect(await subBasic.deposits(USER_ALICE.address)).to.eq((100).toBN18());
-    expect((await subBasic.deposits(USER_BRENT.address)).toString()).to.eq('0');
-    expect((await subBasic.deposits(USER_CAMMY.address)).toString()).to.eq('0');
+    expect(await subBasic.deposits(await USER_ALICE.getAddress())).to.equal((100).toBN18());
+    expect((await subBasic.deposits(await USER_BRENT.getAddress())).toString()).to.equal('0');
+    expect((await subBasic.deposits(await USER_CAMMY.getAddress())).toString()).to.equal('0');
 
     await subBasic.connect(USER_BRENT).deposit((50).toBN18());
 
-    expect(await subBasic.deposits(USER_ALICE.address)).to.eq((100).toBN18());
-    expect(await subBasic.deposits(USER_BRENT.address)).to.eq((50).toBN18());
-    expect((await subBasic.deposits(USER_CAMMY.address)).toString()).to.eq('0');
+    expect(await subBasic.deposits(await USER_ALICE.getAddress())).to.equal((100).toBN18());
+    expect(await subBasic.deposits(await USER_BRENT.getAddress())).to.equal((50).toBN18());
+    expect((await subBasic.deposits(await USER_CAMMY.getAddress())).toString()).to.equal('0');
 
     await subBasic.connect(USER_BRENT).deposit((50).toBN18());
 
-    expect((await subBasic.deposits(USER_ALICE.address)).toString()).to.eq(
+    expect((await subBasic.deposits(await USER_ALICE.getAddress())).toString()).to.equal(
       (100).toBN18()
     );
-    expect((await subBasic.deposits(USER_BRENT.address)).toString()).to.eq(
+    expect((await subBasic.deposits(await USER_BRENT.getAddress())).toString()).to.equal(
       (100).toBN18()
     );
-    expect((await subBasic.deposits(USER_CAMMY.address)).toString()).to.eq('0');
+    expect((await subBasic.deposits(await USER_CAMMY.getAddress())).toString()).to.equal('0');
   });
 
   it('Subscription: Fee Math Works', async () => {
@@ -186,39 +186,39 @@ describe('Subscription.sol', () => {
 
     await advanceAMonth();
 
-    expect((await subPro.fees(USER_ALICE.address)).scaledInt(18)).eq(500);
+    expect((await subPro.fees(await USER_ALICE.getAddress())).scaledInt(18)).eq(500);
 
     await advanceAMonth();
 
-    expect((await subPro.fees(USER_ALICE.address)).scaledInt(18)).eq(1000);
+    expect((await subPro.fees(await USER_ALICE.getAddress())).scaledInt(18)).eq(1000);
 
     await modlOracle.connect(CREDMARK_MANAGER).setPrice('200000000');
     await subPro.snapshot();
 
     await advanceAMonth();
 
-    expect((await subPro.fees(USER_ALICE.address)).scaledInt(18)).eq(1250);
+    expect((await subPro.fees(await USER_ALICE.getAddress())).scaledInt(18)).eq(1250);
 
     await modlOracle.connect(CREDMARK_MANAGER).setPrice('400000000');
     await subPro.snapshot();
 
     await advanceAMonth();
 
-    expect((await subPro.fees(USER_ALICE.address)).scaledInt(18)).eq(1375);
+    expect((await subPro.fees(await USER_ALICE.getAddress())).scaledInt(18)).eq(1375);
 
     await modlOracle.connect(CREDMARK_MANAGER).setPrice('100000000');
     await subPro.snapshot();
 
     await advanceAMonth();
 
-    expect((await subPro.fees(USER_ALICE.address)).scaledInt(18)).eq(1875);
+    expect((await subPro.fees(await USER_ALICE.getAddress())).scaledInt(18)).eq(1875);
 
     await modlOracle.connect(CREDMARK_MANAGER).setPrice('25000000');
     await subPro.snapshot();
 
     await advanceAMonth();
 
-    expect((await subPro.fees(USER_ALICE.address)).scaledInt(18)).eq(2375);
+    expect((await subPro.fees(await USER_ALICE.getAddress())).scaledInt(18)).eq(2375);
   });
 
   it('Subscription: Can Exit', async () => {
@@ -228,9 +228,9 @@ describe('Subscription.sol', () => {
     await advanceAMonth();
 
     await expect(subBasic.connect(HACKER_ZACH).exit()).reverted;
-    expect((await modl.balanceOf(USER_ALICE.address)).toString()).to.eq('0');
+    expect((await modl.balanceOf(await USER_ALICE.getAddress())).toString()).to.equal('0');
     await subBasic.connect(USER_ALICE).exit();
-    expect((await modl.balanceOf(USER_ALICE.address)).toString()).to.eq(
+    expect((await modl.balanceOf(await USER_ALICE.getAddress())).toString()).to.equal(
       (10_000).toBN18()
     );
     await expect(subBasic.connect(USER_ALICE).exit()).reverted;
@@ -240,10 +240,10 @@ describe('Subscription.sol', () => {
     subPro.connect(USER_ALICE).deposit((100).toBN18());
     subPro.connect(USER_BRENT).deposit((10_000).toBN18());
 
-    await expect(subPro.liquidate(USER_ALICE.address)).to.be.reverted;
+    await expect(subPro.liquidate(await USER_ALICE.getAddress())).to.be.reverted;
     await advanceAMonth();
-    await expect(subPro.liquidate(USER_ALICE.address)).to.not.be.reverted;
-    expect((await modl.balanceOf(USER_ALICE.address)).toString()).to.eq(
+    await expect(subPro.liquidate(await USER_ALICE.getAddress())).to.not.be.reverted;
+    expect((await modl.balanceOf(await USER_ALICE.getAddress())).toString()).to.equal(
       (9_900).toBN18()
     );
   });
@@ -254,27 +254,27 @@ describe('Subscription.sol', () => {
     await advanceAMonth();
     await advanceAMonth();
     await expect(subPro.connect(USER_ALICE).exit()).not.reverted;
-    expect((await modl.balanceOf(revenueTreasury.address)).toString()).not.eq(
+    expect((await modl.balanceOf(await revenueTreasury.getAddress())).toString()).not.equal(
       '0'
     );
   });
 
   it('Subscription: Claims Rewards', async () => {
-    expect((await rewards.getShares(subPro.address)).scaledInt(18)).to.eq(0);
+    expect((await rewards.getShares(await subPro.getAddress())).scaledInt(18)).to.equal(0);
     await expect(subPro.connect(USER_ALICE).deposit((10_000).toBN18())).not
       .reverted;
 
     await advanceAYear();
 
-    expect((await rewards.getShares(subPro.address)).scaledInt(18)).to.eq(
+    expect((await rewards.getShares(await subPro.getAddress())).scaledInt(18)).to.equal(
       2_000_000
     );
     await expect(subPro.connect(USER_ALICE).claim()).not.reverted;
 
-    expect((await modl.balanceOf(rewards.address)).scaledInt(18)).eq(0);
-    expect((await modl.balanceOf(subPro.address)).scaledInt(18)).eq(10_000);
+    expect((await modl.balanceOf(await rewards.getAddress())).scaledInt(18)).eq(0);
+    expect((await modl.balanceOf(await subPro.getAddress())).scaledInt(18)).eq(10_000);
     expect(
-      (await modl.balanceOf(USER_ALICE.address)).scaledInt(18)
+      (await modl.balanceOf(await USER_ALICE.getAddress())).scaledInt(18)
     ).to.be.closeTo(250_000, 10);
   });
 
@@ -348,23 +348,23 @@ describe('Subscription.sol', () => {
 
     await advanceAMonth();
     expect(
-      (await subPro.rewards(USER_ALICE.address)).scaledInt(18)
+      (await subPro.rewards(await USER_ALICE.getAddress())).scaledInt(18)
     ).to.be.closeTo(20_500, 100);
 
-    expect((await subPro.totalDeposits()).scaledInt(18)).to.eq(10_000);
-    expect((await subPro.deposits(USER_ALICE.address)).scaledInt(18)).to.eq(
+    expect((await subPro.totalDeposits()).scaledInt(18)).to.equal(10_000);
+    expect((await subPro.deposits(await USER_ALICE.getAddress())).scaledInt(18)).to.equal(
       10_000
     );
 
     await subPro.connect(USER_ALICE).rebalance();
 
-    expect((await subPro.rewards(USER_ALICE.address)).scaledInt(18)).to.eq(0);
+    expect((await subPro.rewards(await USER_ALICE.getAddress())).scaledInt(18)).to.equal(0);
     expect((await subPro.totalDeposits()).scaledInt(18)).to.be.closeTo(
       30_500,
       100
     );
     expect(
-      (await subPro.deposits(USER_ALICE.address)).scaledInt(18)
+      (await subPro.deposits(await USER_ALICE.getAddress())).scaledInt(18)
     ).to.be.closeTo(30_500, 100);
   });
 
@@ -374,14 +374,14 @@ describe('Subscription.sol', () => {
     );
 
     const newOracle = await newOracleFactory.deploy({
-      tokenAddress: modl.address,
+      tokenAddress: await modl.getAddress(),
       initialPrice: 200_000_000,
     });
 
-    await expect(subPro.setOracle(newOracle.address)).to.be.reverted;
+    await expect(subPro.setOracle(await newOracle.getAddress())).to.be.reverted;
 
     await expect(
-      subPro.connect(CREDMARK_CONFIGURER).setOracle(newOracle.address)
+      subPro.connect(CREDMARK_CONFIGURER).setOracle(await newOracle.getAddress())
     ).not.to.be.reverted;
   });
 
@@ -389,15 +389,15 @@ describe('Subscription.sol', () => {
     beforeEach(async () => {
       await cmk
         .connect(TEST_GODMODE)
-        .transfer(USER_ALICE.address, (10_000).toBN18());
-      await cmk.connect(USER_ALICE).approve(subCmk.address, (10_000).toBN18());
+        .transfer(await USER_ALICE.getAddress(), (10_000).toBN18());
+      await cmk.connect(USER_ALICE).approve(await subCmk.getAddress(), (10_000).toBN18());
     });
 
     it('CMK Subscription: can deposit', async () => {
       await subCmk.connect(USER_ALICE).deposit((10_000).toBN18());
 
-      expect((await cmk.balanceOf(USER_ALICE.address)).scaledInt(18)).to.eq(0);
-      expect((await subCmk.deposits(USER_ALICE.address)).scaledInt(18)).to.eq(
+      expect((await cmk.balanceOf(await USER_ALICE.getAddress())).scaledInt(18)).to.equal(0);
+      expect((await subCmk.deposits(await USER_ALICE.getAddress())).scaledInt(18)).to.equal(
         10_000
       );
     });
@@ -407,14 +407,14 @@ describe('Subscription.sol', () => {
 
       await advanceAMonth();
 
-      expect((await subCmk.deposits(USER_ALICE.address)).scaledInt(18)).to.eq(
+      expect((await subCmk.deposits(await USER_ALICE.getAddress())).scaledInt(18)).to.equal(
         10_000
       );
       expect(
-        (await subCmk.rewards(USER_ALICE.address)).scaledInt(18)
+        (await subCmk.rewards(await USER_ALICE.getAddress())).scaledInt(18)
       ).to.be.closeTo(20_550, 10);
       expect(
-        (await subCmk.fees(USER_ALICE.address)).scaledInt(18)
+        (await subCmk.fees(await USER_ALICE.getAddress())).scaledInt(18)
       ).to.be.closeTo(350, 10);
     });
 
@@ -425,15 +425,15 @@ describe('Subscription.sol', () => {
 
       await subCmk.connect(USER_ALICE).exit();
 
-      expect((await subCmk.deposits(USER_ALICE.address)).scaledInt(18)).to.eq(
+      expect((await subCmk.deposits(await USER_ALICE.getAddress())).scaledInt(18)).to.equal(
         0
       );
       expect(
-        (await subCmk.rewards(USER_ALICE.address)).scaledInt(18)
+        (await subCmk.rewards(await USER_ALICE.getAddress())).scaledInt(18)
       ).to.be.closeTo(250_000, 10);
 
       expect(
-        (await cmk.balanceOf(USER_ALICE.address)).scaledInt(18)
+        (await cmk.balanceOf(await USER_ALICE.getAddress())).scaledInt(18)
       ).to.closeTo(5650, 10);
     });
 
@@ -442,16 +442,16 @@ describe('Subscription.sol', () => {
 
       await advanceAMonth();
 
-      await subCmk.liquidate(USER_ALICE.address);
+      await subCmk.liquidate(await USER_ALICE.getAddress());
 
-      expect((await subCmk.deposits(USER_ALICE.address)).scaledInt(18)).to.eq(
+      expect((await subCmk.deposits(await USER_ALICE.getAddress())).scaledInt(18)).to.equal(
         0
       );
       expect(
-        (await subCmk.rewards(USER_ALICE.address)).scaledInt(18)
+        (await subCmk.rewards(await USER_ALICE.getAddress())).scaledInt(18)
       ).to.be.closeTo(20_550, 10);
 
-      expect((await cmk.balanceOf(USER_ALICE.address)).scaledInt(18)).to.eq(
+      expect((await cmk.balanceOf(await USER_ALICE.getAddress())).scaledInt(18)).to.equal(
         9900
       );
     });
@@ -462,13 +462,13 @@ describe('Subscription.sol', () => {
       await advanceAYear();
 
       expect(
-        (await modl.balanceOf(USER_ALICE.address)).scaledInt(18)
+        (await modl.balanceOf(await USER_ALICE.getAddress())).scaledInt(18)
       ).to.be.closeTo(10_000, 10);
 
       await subCmk.connect(USER_ALICE).claim();
 
       expect(
-        (await modl.balanceOf(USER_ALICE.address)).scaledInt(18)
+        (await modl.balanceOf(await USER_ALICE.getAddress())).scaledInt(18)
       ).to.be.closeTo(260_000, 10);
     });
   });

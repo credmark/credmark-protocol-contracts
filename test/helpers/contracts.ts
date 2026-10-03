@@ -14,7 +14,7 @@ import {
   RevenueTreasury,
   StableTokenSubscription,
   SubscriptionRewardsIssuer,
-} from '../../typechain';
+} from '../../typechain-types';
 import './bigNumber';
 
 import {
@@ -34,7 +34,6 @@ import {
   TRUSTED_CONTRACT_ROLE,
 } from './roles';
 
-import { BigNumber } from 'ethers';
 import { univ3Addresses } from './constants';
 import { aYearFromNow } from './time';
 
@@ -121,32 +120,32 @@ async function mockTokens() {
 
   const FCmk = await ethers.getContractFactory('MockCmk');
   const FUsdc = await ethers.getContractFactory('MockUsdc');
-  cmk = (await FCmk.deploy()) as MockCmk;
-  usdc = (await FUsdc.deploy()) as MockUsdc;
+  cmk = (await FCmk.deploy()) as unknown as MockCmk;
+  usdc = (await FUsdc.deploy()) as unknown as MockUsdc;
 
   /* Grant Mock Permissions */
 
-  await cmk.grantRole(MINTER_ROLE, TEST_GODMODE.address);
-  await usdc.grantRole(MINTER_ROLE, TEST_GODMODE.address);
+  await cmk.grantRole(MINTER_ROLE, await TEST_GODMODE.getAddress());
+  await usdc.grantRole(MINTER_ROLE, await TEST_GODMODE.getAddress());
 
   /* Mint Mock Tokens */
 
   await cmk
     .connect(TEST_GODMODE)
-    .mint(TEST_GODMODE.address, BigNumber.from(10_000_000).toWei());
+    .mint(await TEST_GODMODE.getAddress(), BigInt(10_000_000).toWei());
   await usdc
     .connect(TEST_GODMODE)
-    .mint(TEST_GODMODE.address, BigNumber.from(10_000_000).toWei(6));
+    .mint(await TEST_GODMODE.getAddress(), BigInt(10_000_000).toWei(6));
 }
 
 async function deployContractsDependency0() {
   const FModl = await ethers.getContractFactory('Modl');
   const FNft = await ethers.getContractFactory('ModelNft');
   modl = (await FModl.deploy(
-    BigNumber.from(10_000_000).toWei(),
-    BigNumber.from(1_000_000).toWei()
-  )) as Modl;
-  modelNft = (await FNft.deploy()) as ModelNft;
+    BigInt(10_000_000).toWei(),
+    BigInt(1_000_000).toWei()
+  )) as unknown as Modl;
+  modelNft = (await FNft.deploy()) as unknown as ModelNft;
 }
 
 async function deployContractsDependency1() {
@@ -155,24 +154,24 @@ async function deployContractsDependency1() {
   const FRT = await ethers.getContractFactory('RevenueTreasury');
 
   rewards = (await FRI.deploy({
-    modlAddress: modl.address,
+    modlAddress: await modl.getAddress(),
   })) as SubscriptionRewardsIssuer;
 
   rewardsCmk = (await FRI.deploy({
-    modlAddress: modl.address,
+    modlAddress: await modl.getAddress(),
   })) as SubscriptionRewardsIssuer;
 
   revenueTreasury = (await FRT.deploy({
-    modlAddress: modl.address,
-  })) as RevenueTreasury;
+    modlAddress: await modl.getAddress(),
+  })) as unknown as RevenueTreasury;
 
   liquidityManager = (await FLM.deploy({
-    modlAddress: modl.address,
-    usdcAddress: usdc.address,
+    modlAddress: await modl.getAddress(),
+    usdcAddress: await usdc.getAddress(),
     launchLiquidity: '7500000000000000000000000',
     lockup: (2 * 365 * 86400).toString(),
-    revenueTreasury: revenueTreasury.address,
-  })) as LiquidityManager;
+    revenueTreasury: await revenueTreasury.getAddress(),
+  })) as unknown as LiquidityManager;
 }
 
 async function deployContractsDependency2() {
@@ -180,12 +179,12 @@ async function deployContractsDependency2() {
   const FManOra = await ethers.getContractFactory('ManagedPriceOracle');
 
   rewardsNft = await FNftRew.deploy({
-    modlAddress: modl.address,
-    modelNftAddress: modelNft.address,
+    modlAddress: await modl.getAddress(),
+    modelNftAddress: await modelNft.getAddress(),
   });
 
   modlOracle = await FManOra.deploy({
-    tokenAddress: modl.address,
+    tokenAddress: await modl.getAddress(),
     initialPrice: 100000000,
   });
 }
@@ -196,85 +195,85 @@ async function deployContractsDependency3() {
 
   subBasic = (await FSubModl.deploy(
     {
-      tokenAddress: modl.address,
-      rewardsIssuerAddress: rewards.address,
+      tokenAddress: await modl.getAddress(),
+      rewardsIssuerAddress: await rewards.getAddress(),
     },
-    modlOracle.address
+    await modlOracle.getAddress()
   )) as ModlSubscription;
 
   subPro = (await FSubModl.deploy(
     {
-      tokenAddress: modl.address,
-      rewardsIssuerAddress: rewards.address,
+      tokenAddress: await modl.getAddress(),
+      rewardsIssuerAddress: await rewards.getAddress(),
     },
-    modlOracle.address
+    await modlOracle.getAddress()
   )) as ModlSubscription;
 
   subSuper = (await FSubModl.deploy(
     {
-      tokenAddress: modl.address,
-      rewardsIssuerAddress: rewards.address,
+      tokenAddress: await modl.getAddress(),
+      rewardsIssuerAddress: await rewards.getAddress(),
     },
-    modlOracle.address
+    await modlOracle.getAddress()
   )) as ModlSubscription;
 
   subCmk = (await FSubCmk.deploy({
-    tokenAddress: cmk.address,
-    rewardsIssuerAddress: rewardsCmk.address,
+    tokenAddress: await cmk.getAddress(),
+    rewardsIssuerAddress: await rewardsCmk.getAddress(),
   })) as CmkSubscription;
 }
 
 async function grantConfigurer() {
   for (const contract of configurableContracts()) {
-    await contract.grantRole(CONFIGURER_ROLE, CREDMARK_CONFIGURER.address);
+    await contract.grantRole(CONFIGURER_ROLE, await CREDMARK_CONFIGURER.getAddress());
   }
 }
 async function grantManager() {
   for (const contract of managedContracts()) {
-    await contract.grantRole(MANAGER_ROLE, CREDMARK_MANAGER.address);
+    await contract.grantRole(MANAGER_ROLE, await CREDMARK_MANAGER.getAddress());
   }
 }
 async function grantAdmin() {
   for (const contract of managedContracts()) {
     await contract.grantRole(
       DEFAULT_ADMIN_ROLE,
-      CREDMARK_ROLE_ASSIGNER.address
+      await CREDMARK_ROLE_ASSIGNER.getAddress()
     );
   }
 }
 async function grantTrustedContract() {
   for (const contract of subscriptions()) {
-    await rewards.grantRole(TRUSTED_CONTRACT_ROLE, contract.address);
+    await rewards.grantRole(TRUSTED_CONTRACT_ROLE, await contract.getAddress());
   }
-  await rewardsCmk.grantRole(TRUSTED_CONTRACT_ROLE, subCmk.address);
+  await rewardsCmk.grantRole(TRUSTED_CONTRACT_ROLE, await subCmk.getAddress());
 }
 
 async function grantMinter() {
-  await modelNft.grantRole(MINTER_ROLE, CREDMARK_MANAGER.address);
+  await modelNft.grantRole(MINTER_ROLE, await CREDMARK_MANAGER.getAddress());
 }
 
 async function configure() {
   await modl
     .connect(CREDMARK_CONFIGURER)
     .grantMintAllowance(
-      CREDMARK_TREASURY_MULTISIG.address,
-      BigNumber.from(250_000).toWei()
+      await CREDMARK_TREASURY_MULTISIG.getAddress(),
+      BigInt(250_000).toWei()
     );
   await modl
     .connect(CREDMARK_CONFIGURER)
-    .grantMintAllowance(rewardsNft.address, BigNumber.from(250_000).toWei());
+    .grantMintAllowance(await rewardsNft.getAddress(), BigInt(250_000).toWei());
   await modl
     .connect(CREDMARK_CONFIGURER)
-    .grantMintAllowance(rewards.address, BigNumber.from(250_000).toWei());
+    .grantMintAllowance(await rewards.getAddress(), BigInt(250_000).toWei());
   await modl
     .connect(CREDMARK_CONFIGURER)
     .grantVestingMintAllowance(
-      rewardsCmk.address,
-      BigNumber.from(250_000).toWei(),
+      await rewardsCmk.getAddress(),
+      BigInt(250_000).toWei(),
       await aYearFromNow()
     );
   await revenueTreasury.connect(CREDMARK_CONFIGURER).configure({
-    daoAddress: CREDMARK_TREASURY_MULTISIG.address,
+    daoAddress: await CREDMARK_TREASURY_MULTISIG.getAddress(),
     modlPercentToDao: '0',
   });
 
@@ -283,31 +282,31 @@ async function configure() {
     fee: '0',
     multiplier: '100',
     floorPrice: '100000000',
-    treasury: revenueTreasury.address,
+    treasury: await revenueTreasury.getAddress(),
   });
 
   await subPro.connect(CREDMARK_CONFIGURER).configure({
     lockup: 86400 * 30,
-    fee: BigNumber.from(500).toWei(),
+    fee: BigInt(500).toWei(),
     multiplier: '200',
     floorPrice: '100000000',
-    treasury: revenueTreasury.address,
+    treasury: await revenueTreasury.getAddress(),
   });
 
   await subSuper.connect(CREDMARK_CONFIGURER).configure({
     lockup: 86400 * 30,
-    fee: BigNumber.from(5000).toWei(),
+    fee: BigInt(5000).toWei(),
     multiplier: '400',
     floorPrice: '100000000',
-    treasury: revenueTreasury.address,
+    treasury: await revenueTreasury.getAddress(),
   });
 
   await subCmk.connect(CREDMARK_CONFIGURER).configure({
     lockup: 86400 * 30,
-    fee: BigNumber.from(250).toWei(),
+    fee: BigInt(250).toWei(),
     multiplier: '100',
     floorPrice: '100000000',
-    treasury: revenueTreasury.address,
+    treasury: await revenueTreasury.getAddress(),
   });
 }
 

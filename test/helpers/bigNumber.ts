@@ -1,38 +1,37 @@
-import { BigNumber } from 'ethers';
 
 declare global {
   export interface Number {
-    toBN: (decimals?: number) => BigNumber;
-    toBN18: () => BigNumber;
+    toBN: (decimals?: number) => bigint;
+    toBN18: () => bigint;
   }
-}
-
-declare module 'ethers' {
-  export interface BigNumber {
+  export interface BigInt {
     scaledInt: (decimals?: number) => number;
-    toWei: (decimals?: number) => BigNumber;
+    toWei: (decimals?: number) => bigint;
   }
 }
 
-BigNumber.prototype.scaledInt = function (decimals = 0) {
+// ethers v6 returns native bigints, so the former BigNumber prototype
+// helpers now extend BigInt.prototype.
+BigInt.prototype.scaledInt = function (decimals = 0): number {
+  const v = this.valueOf();
   if (decimals == 0) {
-    return this.toNumber();
+    return Number(v);
   }
   return Math.round(
-    this.div(BigNumber.from(10).pow(decimals - 1)).toNumber() / 10
+    Number(v / 10n ** BigInt(decimals - 1)) / 10
   );
 };
 
-BigNumber.prototype.toWei = function (decimals = 18) {
-  return this.mul(BigNumber.from(10).pow(decimals));
+BigInt.prototype.toWei = function (decimals = 18): bigint {
+  return this.valueOf() * 10n ** BigInt(decimals);
 };
 
 // eslint-disable-next-line no-extend-native
-Number.prototype.toBN = function (decimals = 18): BigNumber {
-  return BigNumber.from(this).mul(BigNumber.from(10).pow(decimals));
+Number.prototype.toBN = function (decimals = 18): bigint {
+  return BigInt(this) * BigInt(10) ** BigInt(decimals);
 };
 
 // eslint-disable-next-line no-extend-native
-Number.prototype.toBN18 = function () {
+Number.prototype.toBN18 = function (): bigint {
   return this.toBN(18);
 };
