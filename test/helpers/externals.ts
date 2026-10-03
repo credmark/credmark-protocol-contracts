@@ -3,7 +3,7 @@ import {
   IERC20,
   INonfungiblePositionManager,
   ISwapRouter,
-} from '../../typechain';
+} from '../../typechain-types';
 import { tokenAddresses, univ3Addresses } from './constants';
 
 export let swapRouter: ISwapRouter;

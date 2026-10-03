@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 
 import { modelNft, setupProtocol } from './helpers/contracts';
@@ -43,12 +42,12 @@ describe('Model Nft', () => {
     });
     it('#manager', async () => {
       await expect(
-        modelNft.connect(HACKER_ZACH).safeMint(HACKER_ZACH.address, 'slug 1')
+        modelNft.connect(HACKER_ZACH).safeMint(await HACKER_ZACH.getAddress(), 'slug 1')
       ).reverted;
       await expect(
         modelNft
           .connect(CREDMARK_MANAGER)
-          .safeMint(USER_ALICE.address, 'slug 1')
+          .safeMint(await USER_ALICE.getAddress(), 'slug 1')
       ).not.reverted;
     });
   });
@@ -59,16 +58,16 @@ describe('Model Nft', () => {
     });
     it('#pause', async () => {
       await expect(
-        modelNft.connect(CREDMARK_MANAGER).safeMint(USER_ALICE.address, 'slug1')
+        modelNft.connect(CREDMARK_MANAGER).safeMint(await USER_ALICE.getAddress(), 'slug1')
       ).not.reverted;
 
       await expect(
         modelNft
           .connect(USER_ALICE)
           .transferFrom(
-            USER_ALICE.address,
-            USER_BRENT.address,
-            ethers.utils.id('slug1')
+            await USER_ALICE.getAddress(),
+            await USER_BRENT.getAddress(),
+            ethers.id('slug1')
           )
       ).not.reverted;
 
@@ -77,16 +76,16 @@ describe('Model Nft', () => {
       expect(await modelNft.paused()).to.equal(true);
 
       await expect(
-        modelNft.connect(CREDMARK_MANAGER).safeMint(USER_ALICE.address, 'slug2')
+        modelNft.connect(CREDMARK_MANAGER).safeMint(await USER_ALICE.getAddress(), 'slug2')
       ).reverted;
 
       await expect(
         modelNft
           .connect(USER_BRENT)
           .transferFrom(
-            USER_BRENT.address,
-            USER_ALICE.address,
-            ethers.utils.id('slug1')
+            await USER_BRENT.getAddress(),
+            await USER_ALICE.getAddress(),
+            ethers.id('slug1')
           )
       ).reverted;
       await expect(modelNft.connect(CREDMARK_CONFIGURER).unpause()).not
@@ -95,9 +94,9 @@ describe('Model Nft', () => {
         modelNft
           .connect(USER_BRENT)
           .transferFrom(
-            USER_BRENT.address,
-            USER_ALICE.address,
-            ethers.utils.id('slug1')
+            await USER_BRENT.getAddress(),
+            await USER_ALICE.getAddress(),
+            ethers.id('slug1')
           )
       ).not.reverted;
     });
@@ -111,41 +110,41 @@ describe('Model Nft', () => {
         await expect(
           modelNft
             .connect(CREDMARK_MANAGER)
-            .safeMint(USER_ALICE.address, 'slug1')
+            .safeMint(await USER_ALICE.getAddress(), 'slug1')
         ).not.reverted;
 
         await expect(
-          modelNft.connect(HACKER_ZACH).safeMint(USER_ALICE.address, 'slug2')
+          modelNft.connect(HACKER_ZACH).safeMint(await USER_ALICE.getAddress(), 'slug2')
         ).reverted;
 
-        expect(await modelNft.balanceOf(USER_ALICE.address)).to.equal(1);
+        expect(await modelNft.balanceOf(await USER_ALICE.getAddress())).to.equal(1);
       });
 
       it('should not mint using same slug', async () => {
         await modelNft
           .connect(CREDMARK_MANAGER)
-          .safeMint(USER_ALICE.address, TEST_SLUG);
+          .safeMint(await USER_ALICE.getAddress(), TEST_SLUG);
 
         await expect(
           modelNft
             .connect(CREDMARK_MANAGER)
-            .safeMint(USER_BRENT.address, TEST_SLUG)
+            .safeMint(await USER_BRENT.getAddress(), TEST_SLUG)
         ).reverted;
       });
 
       it('Check if slugHash is correct', async () => {
         await modelNft
           .connect(CREDMARK_MANAGER)
-          .safeMint(USER_ALICE.address, TEST_SLUG);
+          .safeMint(await USER_ALICE.getAddress(), TEST_SLUG);
 
         const tokenId = await modelNft.tokenOfOwnerByIndex(
-          USER_ALICE.address,
+          await USER_ALICE.getAddress(),
           0x00
         );
 
-        expect(tokenId).to.equal(BigNumber.from(ethers.utils.id(TEST_SLUG)));
+        expect(tokenId).to.equal(BigInt(ethers.id(TEST_SLUG)));
 
-        expect(await modelNft.ownerOf(tokenId)).eq(USER_ALICE.address);
+        expect(await modelNft.ownerOf(tokenId)).eq(await USER_ALICE.getAddress());
       });
     });
   });
